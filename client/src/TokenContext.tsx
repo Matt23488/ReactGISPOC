@@ -1,10 +1,11 @@
 import React from 'react';
 import { useEffectAsync } from './utilities/ReactUtils';
-import { fetchToken, loadTypedModules } from './utilities/GIS';
+import { loadTypedModules } from './utilities/GIS';
 
 interface TokenContextProperties {
     portalUrl: string;
     children: any;
+    tokenFetchers: (() => Promise<{ server: string, token: string }>)[]
 }
 
 // TODO: Create a general context that takes in anything that can be configured in the API. Tokens, cors servers, portal URL, etc. Everything.
@@ -16,14 +17,10 @@ export function TokenContext(props: TokenContextProperties) {
 
         esriConfig.portalUrl = props.portalUrl;
 
-        const token = await fetchToken();
+        const tokens = await Promise.all(props.tokenFetchers.map(f => f()));
+        tokens.forEach(t => esriId.registerToken(t));
 
-        esriId.registerToken({
-            server: 'https://www.arcgis.com/sharing/rest',
-            token: token.access_token
-        });
-
-        console.log('Token registered');
+        console.log('Token(s) registered');
         setData(props.children);
     });
 

@@ -7,6 +7,7 @@ import settings from './appsettings';
 
 import './KYTCMap.css';
 import { TokenContext } from './TokenContext';
+import { fetchToken } from './utilities/GIS';
 
 interface KYTCMapProps {
     id: string;
@@ -31,11 +32,18 @@ interface KYTCMapProps {
 
 //     return null;
 // }
+async function getAHPToken() {
+    const token = await fetchToken();
+    return {
+        server: 'https://www.arcgis.com/sharing/rest',
+        token: token.access_token
+    };
+}
 
 export default function KYTCMap(props: KYTCMapProps) {
     console.log('KYTCMap init');
     return (
-        <TokenContext portalUrl={settings.portalURL}>
+        <TokenContext portalUrl={settings.portalURL} tokenFetchers={[ getAHPToken ]}>
             <WebMap id={props.id} className='kytc-map'>
                 {/* <FeatureLayer url={settings.projectLayerURL} /> */}
                 <Layer type="esri/layers/FeatureLayer" url={settings.projectLayerURL} />

@@ -145,7 +145,7 @@ const specialInitFunctions: SpecialInitItem[] = [
         type: 'esri/widgets/Fullscreen',
         init: async (widget: __esri.Fullscreen) => {
             const [ watchUtils ] = await loadTypedModules('esri/core/watchUtils');
-            watchUtils.watch(widget.viewModel, "state", (value: __esri.FullscreenViewModel['state']) => {
+            watchUtils.watch(widget.viewModel, 'state', (value: __esri.FullscreenViewModel['state']) => {
                 if (value === 'ready') {
                     widget.view.container.style.width = '100%';
                     widget.view.container.style.height = '100%';
