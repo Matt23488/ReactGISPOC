@@ -1,12 +1,20 @@
-import React from 'react';
+// import React from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { setDefaultOptions } from 'esri-loader';
-import KYTCMap from './KYTCMap';
+import { KYTCMap } from './KYTCMap';
+import settings from './appsettings';
+import { fetchToken } from './utilities/GIS';
 
 setDefaultOptions({ css: true });
 
-console.log(process.env.NODE_ENV);
+async function getAGOLToken() {
+  const token = await fetchToken();
+  return {
+      server: 'https://www.arcgis.com/sharing/rest',
+      token: token.access_token
+  };
+}
 
 function App() {
   // const [data, setData] = React.useState<string | null>(null);
@@ -24,7 +32,7 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         {/* <p>{data || 'Loading...'}</p> */}
-        <KYTCMap id={'22813abda6cd4058b4c4d0f593671737'} />
+        <KYTCMap id={'22813abda6cd4058b4c4d0f593671737'} portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken ]} />
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
         </p>
