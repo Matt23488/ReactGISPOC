@@ -42,6 +42,16 @@ export class TokenContext extends React.Component<TokenContextProperties, TokenC
 
     public render() {
         console.log('TokenContext render');
-        return this.state.tokenRegistered ? this.props.children : <p>Fetching ArcGIS token...</p>;
+        return this.state.tokenRegistered ? this.props.children : <LoadingIndicator text="Fetching ArcGIS token..." />;
     }
+}
+
+function LoadingIndicator(props: { text?: string }) {
+    return (
+        <div style={{ width: '100%', height: '100%' }}>
+            <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '24px' }}>
+                {props.text || 'Loading...'}
+            </span>
+        </div>
+    );
 }

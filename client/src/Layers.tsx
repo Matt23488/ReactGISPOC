@@ -1,13 +1,13 @@
 import React from 'react';
-import { EsriTypeMap, loadTypedModules } from './utilities/GIS';
+import { EsriTypeMap, loadTypedModules, MapContext } from './utilities/GIS';
 
 type PropertyPicker<T> = T extends { new(props: infer U, ...params: never[]): any } ? U : never;
 type InstancePicker<T> = T extends { new(...params: never[]): infer U } ? U : never;
 
 
-type LayerConstructorKeys = ({
-    [T in keyof EsriTypeMap]: EsriTypeMap[T] extends { new(...params: never[]): __esri.Layer } ? (T extends 'esri/layers/Layer' ? never: T) : never;
-})[keyof EsriTypeMap];
+type LayerConstructorKeys = Diff<({
+    [T in keyof EsriTypeMap]: EsriTypeMap[T] extends { new(...params: never[]): __esri.Layer } ? T : never;
+})[keyof EsriTypeMap], 'esri/layers/Layer' | 'esri/layers/FeatureLayer'>;
 type LayerPropertiesTypeMap = {
     [T in LayerConstructorKeys]: Diff<PropertyPicker<EsriTypeMap[T]>, undefined>
 };
@@ -27,7 +27,7 @@ interface LayerProperties<T extends LayerConstructorKeys> {
 
 interface LayerQueueItem {
     map: __esri.Map;
-    getLayer: () => __esri.Layer | undefined;
+    getLayer: () => __esri.Layer;
     ready: boolean;
 }
 
@@ -37,7 +37,7 @@ interface LayerQueueItem {
 // are initialized by React. This makes it possible to control their locations by how
 // you order them as components inside of a map.
 let layerQueue: LayerQueueItem[] = [];
-function queueLayer(map: __esri.Map, getLayer: () => __esri.Layer | undefined) {
+function queueLayer(map: __esri.Map, getLayer: () => __esri.Layer) {
     const record = { map, getLayer, ready: false };
     layerQueue.push(record);
     return function onReady() {
@@ -55,7 +55,7 @@ function queueLayer(map: __esri.Map, getLayer: () => __esri.Layer | undefined) {
 export function Layer<T extends LayerConstructorKeys>(props: LayerProperties<T>) {
     React.useEffect(() => {
         let layer: __esri.Layer | undefined;
-        const onReady = queueLayer(props.map!, () => layer);
+        const onReady = queueLayer(props.map!, () => layer!);
         (async function () {
             const [ LayerConstructor ] = await loadTypedModules(props.type);
             const layerProperties = { url: props.url, ...props.layerProperties } as __esri.LayerProperties;
@@ -76,7 +76,9 @@ export function Layer<T extends LayerConstructorKeys>(props: LayerProperties<T>)
 interface FeatureLayerProperties {
     map?: __esri.Map;
     view?: __esri.View;
-    url: string
+    url: string;
+    id?: string;
+    title?: string;
 }
 
 export function FeatureLayer(props: FeatureLayerProperties) {
@@ -84,17 +86,49 @@ export function FeatureLayer(props: FeatureLayerProperties) {
     React.useEffect(() => {
         console.log('FeatureLayer useEffect');
         let layer: __esri.FeatureLayer | undefined;
-        const onReady = queueLayer(props.map!, () => layer);
+        const onReady = queueLayer(props.map!, () => layer!);
         (async function () {
             const [FeatureLayerConstructor] = await loadTypedModules('esri/layers/FeatureLayer');
 
-            layer = new FeatureLayerConstructor({ url: props.url });
+            layer = new FeatureLayerConstructor({ url: props.url, id: props.id, title: props.title });
             onReady();
         })();
 
         return function cleanup() {
             console.log('FeatureLayer cleanup');
             if (layer) props.map?.remove(layer);
+        }
+    });
+
+    return null;
+}
+
+interface GraphicsLayerProperties {
+    map?: __esri.Map;
+    view?: __esri.View;
+    id?: string;
+    title?: string;
+}
+
+export function GraphicsLayer(props: GraphicsLayerProperties) {
+    console.log('GraphicsLayer entry');
+    React.useEffect(() => {
+        console.log('GraphicsLayer useEffect');
+        let graphicsLayer: __esri.GraphicsLayer | undefined;
+        const onReady = queueLayer(props.map!, () => graphicsLayer!);
+        (async function () {
+            const [GraphicsLayerConstructor] = await loadTypedModules('esri/layers/GraphicsLayer');
+
+            // const test = await getWidget(props.view!, 'testSketch');
+            const test = await MapContext.getWidget(props.view!, 'testSketch');
+            console.log('GraphicsLayer got testSketch', test);
+            graphicsLayer = new GraphicsLayerConstructor({ id: props.id, title: props.title });
+            onReady();
+        })();
+
+        return function cleanup() {
+            console.log('GraphicsLayer cleanup');
+            if (graphicsLayer) props.map?.remove(graphicsLayer);
         }
     });
 
