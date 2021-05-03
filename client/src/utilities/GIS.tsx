@@ -50,45 +50,45 @@ export function getLayer<T extends __esri.Layer>(view: __esri.View, layer: strin
 //     });
 // }
 
-interface WidgetContextData {
-    widgetPromises: { widgetId: string, promise: Promise<__esri.Widget> }[];
-    resolves: { widgetId: string, resolve: (widget: __esri.Widget) => void }[];
-}
+// interface WidgetContextData {
+//     widgetPromises: { widgetId: string, promise: Promise<__esri.Widget> }[];
+//     resolves: { widgetId: string, resolve: (widget: __esri.Widget) => void }[];
+// }
 
-// TODO: This isn't working. Circular dependencies are a problem and cause a deadlock.
-// I might be able to ensure that the widget instances are registered, rather than promises to them.
-// My current idea is that it MUST happen before it requests dependencies. But that won't work either. Idk
-// I'll solve it tomorrow.
-const _widgetMap = new Map<__esri.View, WidgetContextData>();
-export const MapContext = {
-    registerWidget: (view: __esri.View, widgetId: string, widgetPromise: Promise<__esri.Widget>) => {
-        let contextData: WidgetContextData;
-        if (_widgetMap.has(view)) contextData = _widgetMap.get(view)!;
-        else {
-            contextData = { widgetPromises: [], resolves: [] };
-            _widgetMap.set(view, contextData);
-        }
+// // TODO: This isn't working. Circular dependencies are a problem and cause a deadlock.
+// // I might be able to ensure that the widget instances are registered, rather than promises to them.
+// // My current idea is that it MUST happen before it requests dependencies. But that won't work either. Idk
+// // I'll solve it tomorrow.
+// const _widgetMap = new Map<__esri.View, WidgetContextData>();
+// export const MapContext = {
+//     registerWidget: (view: __esri.View, widgetId: string, widgetPromise: Promise<__esri.Widget>) => {
+//         let contextData: WidgetContextData;
+//         if (_widgetMap.has(view)) contextData = _widgetMap.get(view)!;
+//         else {
+//             contextData = { widgetPromises: [], resolves: [] };
+//             _widgetMap.set(view, contextData);
+//         }
 
-        contextData.resolves.filter(r => r.widgetId === widgetId).forEach(r => widgetPromise.then(w => r.resolve(w)));
-        contextData.widgetPromises.push({ widgetId, promise: widgetPromise });
-    },
+//         contextData.resolves.filter(r => r.widgetId === widgetId).forEach(r => widgetPromise.then(w => r.resolve(w)));
+//         contextData.widgetPromises.push({ widgetId, promise: widgetPromise });
+//     },
 
-    getWidget: <T extends __esri.Widget>(view: __esri.View, widgetId: string, timeout = 10000) => {
-        return new Promise<T>(resolve => {
-            let contextData: WidgetContextData;
-            if (_widgetMap.has(view)) contextData = _widgetMap.get(view)!;
-            else {
-                contextData = { widgetPromises: [], resolves: [] };
-            }
+//     getWidget: <T extends __esri.Widget>(view: __esri.View, widgetId: string, timeout = 10000) => {
+//         return new Promise<T>(resolve => {
+//             let contextData: WidgetContextData;
+//             if (_widgetMap.has(view)) contextData = _widgetMap.get(view)!;
+//             else {
+//                 contextData = { widgetPromises: [], resolves: [] };
+//             }
 
-            const widget = contextData.widgetPromises.find(w => w.widgetId === widgetId);
-            if (widget) widget.promise.then(w => resolve(w as T));
-            // else window.setTimeout(resolve, timeout);
+//             const widget = contextData.widgetPromises.find(w => w.widgetId === widgetId);
+//             if (widget) widget.promise.then(w => resolve(w as T));
+//             // else window.setTimeout(resolve, timeout);
             
-            window.setTimeout(resolve, timeout);
-        });
-    }
-};
+//             window.setTimeout(resolve, timeout);
+//         });
+//     }
+// };
 // export const WidgetContext = React.createContext(contextObj);
 
 // export function WidgetContextProvider(props: { children: JSX.Element }) {

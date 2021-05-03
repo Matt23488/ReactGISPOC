@@ -5,7 +5,8 @@ import { loadTypedModules } from './utilities/GIS';
 interface TokenContextProperties {
     portalUrl: string;
     children: JSX.Element;
-    tokenFetchers: (() => Promise<{ server: string, token: string }>)[]
+    tokenFetchers: (() => Promise<{ server: string, token: string }>)[];
+    corsServers?: string[];
 }
 
 interface TokenContextState {
@@ -28,8 +29,12 @@ export class TokenContext extends React.Component<TokenContextProperties, TokenC
         const [esriId, esriConfig] = await loadTypedModules('esri/identity/IdentityManager', 'esri/config');
 
         esriConfig.portalUrl = this.props.portalUrl;
+        if (this.props.corsServers) {
+            esriConfig.request.trustedServers = this.props.corsServers;
+        }
 
         const tokens = await Promise.all(this.props.tokenFetchers.map(f => f()));
+        console.log('registering tokens:', tokens);
         tokens.forEach(t => esriId.registerToken(t));
 
         console.log('Token(s) registered');

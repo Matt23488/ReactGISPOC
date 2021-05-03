@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { EsriTypeMap, getLayer, loadTypedModules, MapContext } from './utilities/GIS';
+import { EsriTypeMap, getLayer, loadTypedModules } from './utilities/GIS';
 
 type PropertyPicker<T> = T extends { new(props: infer U, ...params: never[]): any } ? U : never;
 type InstancePicker<T> = T extends { new(...params: never[]): infer U } ? U : never;
@@ -50,14 +50,14 @@ interface WidgetQueueItem {
 // are initialized by React. This makes it possible to control their locations by how
 // you order them as components inside of a map.
 let widgetQueue: WidgetQueueItem[] = [];
-function queueWidget(view: __esri.View, widgetId: string, getWidget: () => __esri.Widget, position: __esri.UIAddComponent['position']) {
+function queueWidget(view: __esri.View, getWidget: () => __esri.Widget, position: __esri.UIAddComponent['position']) {
     const record = { view, getWidget, position, ready: false };
     widgetQueue.push(record);
-    let widgetPromiseResolver: (widget: __esri.Widget) => void;
-    MapContext.registerWidget(view, widgetId, new Promise(resolve => widgetPromiseResolver = resolve));
+    // let widgetPromiseResolver: (widget: __esri.Widget) => void;
+    // MapContext.registerWidget(view, widgetId, new Promise(resolve => widgetPromiseResolver = resolve));
     return function onReady() {
         record.ready = true;
-        widgetPromiseResolver(getWidget());
+        // widgetPromiseResolver(getWidget());
         if (widgetQueue.every(t => t.ready)) {
             widgetQueue.forEach(t => t.view.ui.add(t.getWidget(), { position: t.position }));
             widgetQueue = [];
@@ -68,7 +68,7 @@ function queueWidget(view: __esri.View, widgetId: string, getWidget: () => __esr
 export function Widget<T extends GenericWidgetConstructorKeys>(props: WidgetProperties<T>) {
     React.useEffect(() => {
         let widget: __esri.Widget | undefined;
-        const onReady = queueWidget(props.view!, props.id, () => widget!, props.position);
+        const onReady = queueWidget(props.view!, () => widget!, props.position);
         (async function () {
             const [ WidgetConstructor ] = await loadTypedModules(props.type);
             const widgetProperties = { view: props.view, id: props.id, ...props.widgetProperties } as __esri.WidgetProperties;
@@ -90,7 +90,7 @@ export function Widget<T extends GenericWidgetConstructorKeys>(props: WidgetProp
 export function ExpandableWidget<T extends GenericWidgetConstructorKeys>(props: ExpandableWidgetProperties<T>) {
     React.useEffect(() => {
         let expand: __esri.Expand | undefined;
-        const onReady = queueWidget(props.view!, props.id, () => expand!, props.position);
+        const onReady = queueWidget(props.view!, () => expand!, props.position);
         (async function () {
             const [ Expand, WidgetConstructor ] = await loadTypedModules('esri/widgets/Expand', props.type);
             const widgetProperties = { view: props.view, id: props.id, ...props.widgetProperties } as __esri.WidgetProperties;
@@ -117,7 +117,7 @@ export function ExpandableWidget<T extends GenericWidgetConstructorKeys>(props: 
 export function ExpandableHTML(props: ExpandableHTMLProperties) {
     React.useEffect(() => {
         let expand: __esri.Expand | undefined;
-        const onReady = queueWidget(props.view!, '', () => expand!, props.position);
+        const onReady = queueWidget(props.view!, () => expand!, props.position);
         (async function () {
             const [ Expand ] = await loadTypedModules('esri/widgets/Expand');
 
@@ -155,7 +155,7 @@ interface SketchProps {
 export function Sketch(props: SketchProps) {
     React.useEffect(() => {
         let sketch: __esri.Sketch | undefined;
-        const onReady = queueWidget(props.view!, props.id, () => sketch!, props.position);
+        const onReady = queueWidget(props.view!, () => sketch!, props.position);
         (async function () {
             const [SketchConstructor] = await loadTypedModules('esri/widgets/Sketch');
 
@@ -179,47 +179,59 @@ export function Sketch(props: SketchProps) {
 }
 
 // TODO: Same here
-// interface EditorProps {
-//     widgetProperties?: Optional<Remove<WidgetPropertiesTypeMap['esri/widgets/Editor'], 'view' | 'layer'>>;
-//     view?: __esri.View;
-//     position?: __esri.UIAddComponent['position'];
-//     init?: (widget: __esri.Editor) => void;
-//     layer: string
-// }
+interface EditorProps {
+    widgetProperties?: Optional<Remove<WidgetPropertiesTypeMap['esri/widgets/Editor'], 'view' | 'layer'>>;
+    view?: __esri.View;
+    position?: __esri.UIAddComponent['position'];
+    init?: (widget: __esri.Editor) => void;
+    layer: string
+}
 
-// export function Editor(props: EditorProps) {
-//     React.useEffect(() => {
-//         let editor: __esri.Editor | undefined;
-//         const onReady = queueWidget(props.view!, () => editor!, props.position);
-//         (async function () {
-//             const [EditorConstructor] = await loadTypedModules('esri/widgets/Editor');
+export function Editor(props: EditorProps) {
+    React.useEffect(() => {
+        let editor: __esri.Editor | undefined;
+        const onReady = queueWidget(props.view!, () => editor!, props.position);
+        (async function () {
+            const [EditorConstructor] = await loadTypedModules('esri/widgets/Editor');
 
-//             props.view?.on('layerview-create', e => {
-//                 if (e.layer.id !== props.layer && !(e.layer instanceof __esri.FeatureLayer)) return;
+            const layer = await getLayer<__esri.FeatureLayer>(props.view!, props.layer);
+            editor = new EditorConstructor({
+                view: props.view,
+                layerInfos: [{
+                    layer,
+                    fieldConfig: [{
+                        name: 'InspectedBy',
+                        label: 'Inspector'
+                    } as __esri.FieldConfig]
+                }]
+            } as __esri.EditorProperties);
+            onReady();
+            // props.view?.on('layerview-create', e => {
+            //     if (e.layer.id !== props.layer && !(e.layer instanceof __esri.FeatureLayer)) return;
 
-//                 console.log(`Editor for ${e.layer.id}`);
-//                 editor = new EditorConstructor({ layerInfos:[{
-//                     layer: e.layer as __esri.FeatureLayer,
-//                     // fieldConfig: [
-//                     //     {
-//                     //         name: 'KYTCDynamic_Highways.DBO.Project_Locations_Line.Identifier',
-//                     //         label: 'PLL Identifier',
-//                     //         description: '',
-//                     //             domain
-//                     //     }
-//                     // ]
-//                 }] });
-//                 onReady();
-//             });
-//         })();
+            //     console.log(`Editor for ${e.layer.id}`);
+            //     editor = new EditorConstructor({ layerInfos:[{
+            //         layer: e.layer as __esri.FeatureLayer,
+            //         // fieldConfig: [
+            //         //     {
+            //         //         name: 'KYTCDynamic_Highways.DBO.Project_Locations_Line.Identifier',
+            //         //         label: 'PLL Identifier',
+            //         //         description: '',
+            //         //             domain
+            //         //     }
+            //         // ]
+            //     }] });
+            //     onReady();
+            // });
+        })();
 
-//         return function cleanup() {
-//             if (editor) props.view?.ui.remove(editor);
-//         }
-//     });
+        return function cleanup() {
+            if (editor) props.view?.ui.remove(editor);
+        }
+    });
 
-//     return null;
-// }
+    return null;
+}
 
 interface SpecialInitItem {
     type: GenericWidgetConstructorKeys,

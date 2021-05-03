@@ -1,7 +1,7 @@
 import React from 'react';
 import { WebMap } from '@esri/react-arcgis';
 // import { loadTypedModules } from './utilities/GIS';
-import { Widget, ExpandableWidget, ExpandableHTML, Sketch } from './Widget';
+import { Widget, ExpandableWidget, ExpandableHTML, Sketch, Editor } from './Widget';
 import { FeatureLayer, GraphicsLayer } from './Layers';
 import settings from './appsettings';
 
@@ -23,14 +23,43 @@ async function getAHPToken() {
     };
 }
 
+async function getGRPToken() {
+    const options = {
+        username: settings.grpAuth.user,
+        password: settings.grpAuth.password,
+        client: 'requestip',
+        expiration: '20160',
+        f: 'json'
+    } as { [key: string]: string };
+    const params = [];
+    for (let key in options) {
+        params.push(`${encodeURIComponent(key)}=${encodeURIComponent(options[key])}`)
+    }
+
+    const tokenRes = await fetch(settings.grpAuth.tokenURL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.join('&')
+    });
+
+    const tokenData = await tokenRes.json();
+    return {
+        token: tokenData.token,
+        server: 'https://test-maps.kytc.ky.gov/arcgis/rest/services'
+    };
+}
+
 export function KYTCMapWithTokenContext(props: KYTCMapProps) {
     console.log('KYTCMap init');
     return (
-        <TokenContext portalUrl={settings.portalURL} tokenFetchers={[ getAHPToken ]}>
+        <TokenContext portalUrl={settings.portalURL} tokenFetchers={[ getAHPToken, getGRPToken ]} corsServers={[ 'https://test-maps.kytc.ky.gov/']}>
             <WebMap id={props.id} className="KYTCMap">
                 <Sketch position="top-right" layer="testGraphicsLayer" id="testSketch" />
+                <Editor position="top-right" layer="grpLayer" />
                 <FeatureLayer url={settings.projectLayerURL} id="ahpLayer" title="Active Highway Plan" />
-                {/* <Editor position="top-right" layer="ahpLayer" /> */}
+                <FeatureLayer url={settings.grpURL} id="grpLayer" title="Proposed Guardrail" />
                 <ExpandableWidget id="basemapGallery" position="top-right" type="esri/widgets/BasemapGallery" expandProperties={{ expandTooltip: "Open Basemap Gallery", collapseTooltip: "Close Basemap Gallery" }} />
                 <ExpandableWidget id="layerList" position="top-right" type="esri/widgets/LayerList" expandProperties={{ expandTooltip: "Open Layer List", collapseTooltip: "Close Layer List" }} />
                 <ExpandableWidget id="print" position="top-right" type="esri/widgets/Print" widgetProperties={{ printServiceUrl: settings.printServiceURL }} expandProperties={{ expandTooltip: "Open PDF Export", collapseTooltip: "Close PDF Export" }} />

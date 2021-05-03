@@ -1,5 +1,5 @@
 import React from 'react';
-import { EsriTypeMap, loadTypedModules, MapContext } from './utilities/GIS';
+import { EsriTypeMap, loadTypedModules } from './utilities/GIS';
 
 type PropertyPicker<T> = T extends { new(props: infer U, ...params: never[]): any } ? U : never;
 type InstancePicker<T> = T extends { new(...params: never[]): infer U } ? U : never;
@@ -120,8 +120,8 @@ export function GraphicsLayer(props: GraphicsLayerProperties) {
             const [GraphicsLayerConstructor] = await loadTypedModules('esri/layers/GraphicsLayer');
 
             // const test = await getWidget(props.view!, 'testSketch');
-            const test = await MapContext.getWidget(props.view!, 'testSketch');
-            console.log('GraphicsLayer got testSketch', test);
+            // const test = await MapContext.getWidget(props.view!, 'testSketch');
+            // console.log('GraphicsLayer got testSketch', test);
             graphicsLayer = new GraphicsLayerConstructor({ id: props.id, title: props.title });
             onReady();
         })();

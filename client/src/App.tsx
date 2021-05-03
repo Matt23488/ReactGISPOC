@@ -19,7 +19,12 @@ async function getAGOLToken() {
 function App() {
     return (
         <div className="App">
-            <KYTCMapWithTokenContext id={'22813abda6cd4058b4c4d0f593671737'} portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken ]} />
+            <div style={{ float: 'left', width: '300px', height: '100%' }}>
+                <p>Lorem ipsum dolor set amet</p>
+            </div>
+            <div style={{ float: 'left', width: 'calc(100% - 300px)', height: '100%' }}>
+                <KYTCMapWithTokenContext id={'22813abda6cd4058b4c4d0f593671737'} portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken ]} />
+            </div>
         </div>
     );
 }
