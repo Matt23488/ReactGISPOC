@@ -61,13 +61,39 @@ export function Layer<T extends LayerConstructorKeys>(props: LayerProperties<T>)
             const layerProperties = { url: props.url, ...props.layerProperties } as __esri.LayerProperties;
             
             layer = new LayerConstructor(layerProperties);
-            // specialInitFunctions.find(obj => obj.type === props.type)?.init(layer);
             if (props.init) props.init(layer as InstancePicker<EsriTypeMap[T]>);
             onReady();
         })();
 
         return function cleanup() {
-            // if (layer) props.view?.ui.remove(layer);
+            if (layer) props.map?.remove(layer);
+        }
+    });
+
+    return null;
+}
+
+interface FeatureLayerProperties {
+    map?: __esri.Map;
+    view?: __esri.View;
+    url: string
+}
+
+export function FeatureLayer(props: FeatureLayerProperties) {
+    console.log('FeatureLayer entry');
+    React.useEffect(() => {
+        console.log('FeatureLayer useEffect');
+        let layer: __esri.FeatureLayer | undefined;
+        const onReady = queueLayer(props.map!, () => layer);
+        (async function () {
+            const [FeatureLayerConstructor] = await loadTypedModules('esri/layers/FeatureLayer');
+
+            layer = new FeatureLayerConstructor({ url: props.url });
+            onReady();
+        })();
+
+        return function cleanup() {
+            console.log('FeatureLayer cleanup');
             if (layer) props.map?.remove(layer);
         }
     });

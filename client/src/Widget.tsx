@@ -6,9 +6,9 @@ type PropertyPicker<T> = T extends { new(props: infer U, ...params: never[]): an
 type InstancePicker<T> = T extends { new(...params: never[]): infer U } ? U : never;
 
 
-type WidgetConstructorKeys = ({
-    [T in keyof EsriTypeMap]: EsriTypeMap[T] extends { new(...params: never[]): __esri.Widget } ? (T extends 'esri/widgets/Expand' ? never: T) : never;
-})[keyof EsriTypeMap];
+type WidgetConstructorKeys = Diff<({
+    [T in keyof EsriTypeMap]: EsriTypeMap[T] extends { new(...params: never[]): __esri.Widget } ? T : never;
+})[keyof EsriTypeMap], 'esri/widgets/Expand' | 'esri/widgets/Editor'>;
 type WidgetPropertiesTypeMap = {
     [T in WidgetConstructorKeys]: Diff<PropertyPicker<EsriTypeMap[T]>, undefined>
 };
