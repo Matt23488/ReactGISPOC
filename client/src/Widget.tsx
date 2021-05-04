@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { EsriTypeMap, getLayer, loadTypedModules } from './utilities/GIS';
+import { EsriTypeMap, getLayer, getLayers, loadTypedModules } from './utilities/GIS';
 
 type PropertyPicker<T> = T extends { new(props: infer U, ...params: never[]): any } ? U : never;
 type InstancePicker<T> = T extends { new(...params: never[]): infer U } ? U : never;
@@ -21,6 +21,7 @@ interface WidgetProperties<T extends WidgetConstructorKeys> {
     type: T;
     widgetProperties?: Optional<Remove<WidgetPropertiesTypeMap[T], keyof WidgetProperties<T>>>;
     view?: __esri.View;
+    map?: __esri.Map;
     position?: __esri.UIAddComponent['position'];
     init?: (widget: InstancePicker<EsriTypeMap[T]>) => void;
     id: string;
@@ -32,6 +33,7 @@ interface ExpandableWidgetProperties<T extends GenericWidgetConstructorKeys> ext
 
 interface ExpandableHTMLProperties {
     view?: __esri.View;
+    map?: __esri.Map;
     content: JSX.Element | string | HTMLElement;
     position?: __esri.UIAddComponent['position'];
     expandProperties?: Optional<Remove<__esri.ExpandProperties, 'content' | 'view'>>;
@@ -146,6 +148,7 @@ export function ExpandableHTML(props: ExpandableHTMLProperties) {
 interface SketchProps {
     widgetProperties?: Optional<Remove<WidgetPropertiesTypeMap['esri/widgets/Sketch'], keyof SketchProps>>;
     view?: __esri.View;
+    map?: __esri.Map;
     position?: __esri.UIAddComponent['position'];
     init?: (widget: InstancePicker<EsriTypeMap['esri/widgets/Editor']>) => void;
     layer: string;
@@ -164,7 +167,7 @@ export function Sketch(props: SketchProps) {
 
 
             // });
-            const layer = await getLayer<__esri.GraphicsLayer>(props.view!, props.layer);
+            const layer = await getLayer<__esri.GraphicsLayer>(props.map!, props.layer);
             console.log(`Sketch got ${props.layer}`, layer);
             sketch = new SketchConstructor({ view: props.view, id: props.id, layer: layer, ...props.widgetProperties } as __esri.WidgetProperties);
             onReady();
@@ -184,7 +187,7 @@ interface EditorProps {
     view?: __esri.View;
     position?: __esri.UIAddComponent['position'];
     init?: (widget: __esri.Editor) => void;
-    layer: string
+    layers?: string[];
 }
 
 export function Editor(props: EditorProps) {
@@ -194,35 +197,26 @@ export function Editor(props: EditorProps) {
         (async function () {
             const [EditorConstructor] = await loadTypedModules('esri/widgets/Editor');
 
-            const layer = await getLayer<__esri.FeatureLayer>(props.view!, props.layer);
-            editor = new EditorConstructor({
-                view: props.view,
-                layerInfos: [{
-                    layer,
-                    fieldConfig: [{
-                        name: 'InspectedBy',
-                        label: 'Inspector'
-                    } as __esri.FieldConfig]
-                }]
-            } as __esri.EditorProperties);
+            let layerInfos: __esri.LayerInfo[] | undefined;
+            if (props.layers) {
+                const allLayers = await getLayers(props.view!);
+                console.log('Editor allLayers', allLayers);
+                if (allLayers) {
+                    layerInfos = allLayers.filter(l => l.type === 'feature').map(l => ({
+                        view: props.view,
+                        layer: l as __esri.FeatureLayer,
+                        enabled: props.layers!.indexOf(l.id) >= 0,
+                        fieldConfig: (l as __esri.FeatureLayer).fields.map(f => ({
+                            name: f.name,
+                            label: f.alias
+                        } as __esri.FieldConfig))
+                    } as __esri.LayerInfo));
+                }
+                console.log('Editor layerInfos', layerInfos);
+            }
+            
+            editor = new EditorConstructor({ view: props.view, layerInfos } as __esri.EditorProperties);
             onReady();
-            // props.view?.on('layerview-create', e => {
-            //     if (e.layer.id !== props.layer && !(e.layer instanceof __esri.FeatureLayer)) return;
-
-            //     console.log(`Editor for ${e.layer.id}`);
-            //     editor = new EditorConstructor({ layerInfos:[{
-            //         layer: e.layer as __esri.FeatureLayer,
-            //         // fieldConfig: [
-            //         //     {
-            //         //         name: 'KYTCDynamic_Highways.DBO.Project_Locations_Line.Identifier',
-            //         //         label: 'PLL Identifier',
-            //         //         description: '',
-            //         //             domain
-            //         //     }
-            //         // ]
-            //     }] });
-            //     onReady();
-            // });
         })();
 
         return function cleanup() {

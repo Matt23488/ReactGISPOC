@@ -33,13 +33,48 @@ export async function fetchToken() {
     }
 }
 
-export function getLayer<T extends __esri.Layer>(view: __esri.View, layer: string, timeout = 10000) {
-    return new Promise<T>(resolve => {
+// export function getLayer<T extends __esri.Layer>(view: __esri.View, layer: string, timeout = 10000) {
+//     return new Promise<T | undefined>(resolve => {
+//         window.setTimeout(resolve, timeout);
+//         view.on('layerview-create', e => {
+//             if (e.layer.id === layer) resolve(e.layer as T);
+//         });
+//     });
+// }
+// TODO: I think what I'm going to do is convert the TokenContext component into a MapContext component.
+// It will be the same, except it will maintain map and view as state properties. Or, I will look into how to do that
+// so that it can call updates on child components when things like maps and layers have finished loading
+export function getLayer<T extends __esri.Layer>(map: __esri.Map, layer: string, timeout = 10000) {
+    return new Promise<T | undefined>(resolve => {
         window.setTimeout(resolve, timeout);
-        view.on('layerview-create', e => {
-            if (e.layer.id === layer) resolve(e.layer as T);
+        map.layers.on('')
+        map.layers.forEach(l => {
+            console.log('layer id', l.id);
+            if (l.id !== layer) return;
+
+            l.when(() => resolve(l as T));
         });
     });
+}
+
+export function getLayers(view: __esri.View, timeout = 10000) {
+    return new Promise<__esri.Layer[] | undefined>(resolve => {
+        window.setTimeout(resolve, timeout);
+        view.when(async () => {
+            const layers = view.map.layers.toArray();
+            await Promise.all(layers.map(l => l.when()));
+            resolve(layers);
+        });
+    });
+}
+
+const _mapMap = new Map<string, __esri.Map>();
+export function registerMap(lookupId: string, map: __esri.Map) {
+    _mapMap.set(lookupId, map);
+}
+
+export function getMap(lookupId: string) {
+    return _mapMap.get(lookupId);
 }
 
 // export function getWidget<T extends __esri.Widget>(view: __esri.View, widget: string) {

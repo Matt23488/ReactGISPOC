@@ -7,10 +7,12 @@ import settings from './appsettings';
 
 import './KYTCMap.css';
 import { TokenContext } from './TokenContext';
-import { fetchToken } from './utilities/GIS';
+import { fetchToken, registerMap } from './utilities/GIS';
+import { topic } from './utilities/Topic';
 
 interface KYTCMapProps {
     id: string;
+    lookupId: string;
     portalUrl: string;
     tokenFetchers: (() => Promise<{ server: string, token: string }>)[];
 }
@@ -54,12 +56,13 @@ async function getGRPToken() {
 export function KYTCMapWithTokenContext(props: KYTCMapProps) {
     console.log('KYTCMap init');
     return (
-        <TokenContext portalUrl={settings.portalURL} tokenFetchers={[ getAHPToken, getGRPToken ]} corsServers={[ 'https://test-maps.kytc.ky.gov/']}>
-            <WebMap id={props.id} className="KYTCMap">
+        <TokenContext portalUrl={settings.portalURL} tokenFetchers={[ getAHPToken, getGRPToken ]}>
+            <WebMap id={props.id} className="KYTCMap" onLoad={map => topic.publish('KYTCMap', map)}>
                 <Sketch position="top-right" layer="testGraphicsLayer" id="testSketch" />
-                <Editor position="top-right" layer="grpLayer" />
+                <Editor position="top-right" />
                 <FeatureLayer url={settings.projectLayerURL} id="ahpLayer" title="Active Highway Plan" />
                 <FeatureLayer url={settings.grpURL} id="grpLayer" title="Proposed Guardrail" />
+                <FeatureLayer url="https://test-maps.kytc.ky.gov/arcgis/rest/services/Apps/KEPTSAppEdit/FeatureServer/2" id="keptLayer" title="KEPT" />
                 <ExpandableWidget id="basemapGallery" position="top-right" type="esri/widgets/BasemapGallery" expandProperties={{ expandTooltip: "Open Basemap Gallery", collapseTooltip: "Close Basemap Gallery" }} />
                 <ExpandableWidget id="layerList" position="top-right" type="esri/widgets/LayerList" expandProperties={{ expandTooltip: "Open Layer List", collapseTooltip: "Close Layer List" }} />
                 <ExpandableWidget id="print" position="top-right" type="esri/widgets/Print" widgetProperties={{ printServiceUrl: settings.printServiceURL }} expandProperties={{ expandTooltip: "Open PDF Export", collapseTooltip: "Close PDF Export" }} />
