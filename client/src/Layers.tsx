@@ -1,5 +1,6 @@
 import React from 'react';
 import { EsriTypeMap, loadTypedModules } from './utilities/GIS';
+import { topic } from './utilities/Topic';
 
 type PropertyPicker<T> = T extends { new(props: infer U, ...params: never[]): any } ? U : never;
 type InstancePicker<T> = T extends { new(...params: never[]): infer U } ? U : never;
@@ -42,8 +43,10 @@ function queueLayer(map: __esri.Map, getLayer: () => __esri.Layer) {
     layerQueue.push(record);
     return function onReady() {
         record.ready = true;
+        const layer = getLayer();
+        topic.publish(`layerLoad/${map.get('lookupId')}/${layer.id}`, layer);
         if (layerQueue.every(t => t.ready)) {
-            layerQueue.forEach(t => map.add(t.getLayer()!));
+            layerQueue.forEach(t => map.add(t.getLayer()));
             layerQueue = [];
         }
     }

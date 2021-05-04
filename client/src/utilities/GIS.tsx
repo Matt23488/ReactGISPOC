@@ -1,6 +1,7 @@
 import { loadModules } from 'esri-loader';
 // import React from 'react';
 import settings from '../appsettings';
+import { topic } from './Topic';
 
 export async function fetchToken() {
     if (process.env.NODE_ENV === 'development') {
@@ -13,7 +14,7 @@ export async function fetchToken() {
         } as { [key: string]: string };
         const params = [];
         for (let key in options) {
-            params.push(`${encodeURIComponent(key)}=${encodeURIComponent(options[key])}`)
+            params.push(`${encodeURIComponent(key)}=${encodeURIComponent(options[key])}`);
         }
     
         const tokenRes = await fetch(settings.oAuth.tokenURL, {
@@ -44,16 +45,44 @@ export async function fetchToken() {
 // TODO: I think what I'm going to do is convert the TokenContext component into a MapContext component.
 // It will be the same, except it will maintain map and view as state properties. Or, I will look into how to do that
 // so that it can call updates on child components when things like maps and layers have finished loading
-export function getLayer<T extends __esri.Layer>(map: __esri.Map, layer: string, timeout = 10000) {
+export function getLayer<T extends __esri.Layer>(map: __esri.Map | string, layer: string, timeout = 10000) {
+    console.log(`Layer ${layer} requested from map '${typeof map === 'string' ? map : map.get('lookupId')}'`);
+    
     return new Promise<T | undefined>(resolve => {
         window.setTimeout(resolve, timeout);
-        map.layers.on('')
-        map.layers.forEach(l => {
-            console.log('layer id', l.id);
-            if (l.id !== layer) return;
-
-            l.when(() => resolve(l as T));
-        });
+        function getLayerFromMap(map: __esri.Map) {
+            map.layers.forEach(l => {
+                console.log('layer id', l.id);
+                if (l.id !== layer) return;
+    
+                l.when(() => resolve(l as T));
+            });
+            const matchingLayer = map.layers.toArray().filter(l => l.id === layer)[0];
+            if (matchingLayer) matchingLayer.when(() => resolve(matchingLayer as T));
+            else {
+                console.log(`layer ${layer} was not found on map. May not be loaded yet. Setting up a topic subscription.`)
+                const handle = topic.subscribe<T>(`layerLoad/${map.get('lookupId')}/${layer}`, layer => {
+                    console.log(`Layer ${layer.id} loaded from Map ${map.get('lookupId')}`);
+                    layer.when(() => resolve(layer as T));
+                    topic.unsubscribe(handle);
+                });
+            }
+        }
+        
+        if (typeof map === 'string') {
+            const existingMap = getMap(map);
+            if (existingMap) {
+                console.log(`Map ${map} found, looking for layer ${layer}`)
+                getLayerFromMap(existingMap);
+            } else {
+                console.log(`Map ${map} not found. Setting up a topic subscription.`)
+                const handle = topic.subscribe<__esri.Map>(`mapLoad/${map}`, map => {
+                    console.log(`Map ${map.get('lookupId')} loaded.`);
+                    topic.unsubscribe(handle);
+                    getLayerFromMap(map);
+                });
+            }
+        } else getLayerFromMap(map);
     });
 }
 
@@ -71,6 +100,7 @@ export function getLayers(view: __esri.View, timeout = 10000) {
 const _mapMap = new Map<string, __esri.Map>();
 export function registerMap(lookupId: string, map: __esri.Map) {
     _mapMap.set(lookupId, map);
+    topic.publish(`mapLoad/${lookupId}`, map);
 }
 
 export function getMap(lookupId: string) {

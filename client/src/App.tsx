@@ -5,7 +5,6 @@ import { setDefaultOptions } from 'esri-loader';
 import { KYTCMapWithTokenContext } from './KYTCMap';
 import settings from './appsettings';
 import { fetchToken, getLayer } from './utilities/GIS';
-import { topic } from './utilities/Topic';
 
 setDefaultOptions({ css: true });
 
@@ -48,20 +47,17 @@ class CounterWithIncrement extends React.Component<{}, CounterWithIncrementState
     }
 
     public async componentDidMount() {
-        topic.subscribe<__esri.Map>('KYTCMap', async map => {
-            // const layer = await getLayer<__esri.FeatureLayer>(map, 'keptLayer');
-            map.
-            if (layer && layer.type === 'feature') {
-                await layer.when();
-                const query = layer.createQuery();
-                query.where = "1=1";
-                query.outFields = ["*"];
-                query.num = 1;
+        const layer = await getLayer<__esri.FeatureLayer>('testMap', 'keptLayer');
+        if (layer && layer.type === 'feature') {
+            await layer.when();
+            const query = layer.createQuery();
+            query.where = "1=1";
+            query.outFields = ["*"];
+            query.num = 1;
 
-                const features = await layer.queryFeatures(query);
-                console.log('feature query success!', features);
-            }
-        });
+            const features = await layer.queryFeatures(query);
+            this.setState({ feature: features.features[0].attributes });
+        }
     }
 
     private onIncrement() {
@@ -73,6 +69,9 @@ class CounterWithIncrement extends React.Component<{}, CounterWithIncrementState
             <div>
                 <p>Current value: {this.state.value}</p>
                 <button onClick={this.onIncrement.bind(this)}>Increment</button>
+                <pre><code>
+                    {JSON.stringify(this.state.feature, undefined, '  ')}
+                </code></pre>
             </div>
         );
     }

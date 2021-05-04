@@ -8,7 +8,6 @@ import settings from './appsettings';
 import './KYTCMap.css';
 import { TokenContext } from './TokenContext';
 import { fetchToken, registerMap } from './utilities/GIS';
-import { topic } from './utilities/Topic';
 
 interface KYTCMapProps {
     id: string;
@@ -57,7 +56,7 @@ export function KYTCMapWithTokenContext(props: KYTCMapProps) {
     console.log('KYTCMap init');
     return (
         <TokenContext portalUrl={settings.portalURL} tokenFetchers={[ getAHPToken, getGRPToken ]}>
-            <WebMap id={props.id} className="KYTCMap" onLoad={map => topic.publish('KYTCMap', map)}>
+            <WebMap id={props.id} className="KYTCMap" onLoad={map => { map.set('lookupId', props.lookupId); registerMap(props.lookupId, map); }}>
                 <Sketch position="top-right" layer="testGraphicsLayer" id="testSketch" />
                 <Editor position="top-right" />
                 <FeatureLayer url={settings.projectLayerURL} id="ahpLayer" title="Active Highway Plan" />
