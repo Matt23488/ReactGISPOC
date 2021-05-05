@@ -1,7 +1,7 @@
 import React from 'react';
 import { loadTypedModules } from './utilities/GIS';
 import { Map as EsriMap, WebMap as EsriWebMap } from '@esri/react-arcgis';
-import Magic from './Magic';
+import MapSpy from './MapSpy';
 
 interface CommonProperties {
     portalUrl?: string;
@@ -70,7 +70,7 @@ export class Map extends React.Component<MapProperties, MapState> {
     public render() {
         return this.state.ready ? (
             <EsriMap onLoad={this.onLoad.bind(this)} onFail={this.onFail.bind(this)}>
-                <Magic />
+                <MapSpy />
                 {this.props.children}
             </EsriMap>
         ) : <p>Loading...</p>;
@@ -105,7 +105,7 @@ export class WebMap extends React.Component<WebMapProperties, MapState> {
     public render() {
         return this.state.ready ? (
             <EsriWebMap id={this.props.portalId} onLoad={this.onLoad.bind(this)} onFail={this.onFail.bind(this)}>
-                <Magic />
+                <MapSpy />
                 {this.props.children}
             </EsriWebMap>
         ) : <p>Loading...</p>;

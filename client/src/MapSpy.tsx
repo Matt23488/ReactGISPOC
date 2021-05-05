@@ -6,7 +6,7 @@ interface MagicProperties {
     view?: __esri.View;
 }
 
-export default class Magic extends React.Component<MagicProperties> {
+export default class MapSpy extends React.Component<MagicProperties> {
     public async componentDidMount() {
         await this.props.view!.when();
         console.log(`Map '${this.props.map!.get('lookupId')}' loaded`);

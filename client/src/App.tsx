@@ -4,10 +4,10 @@ import './App.css';
 import { setDefaultOptions } from 'esri-loader';
 import settings from './appsettings';
 import { fetchToken } from './utilities/GIS';
-import * as mapRegistry from './Magic';
+import * as mapSpy from './MapSpy';
 import { ExpandableHTML, ExpandableWidget, HTML, Widget } from './Widget';
 import { FeatureLayer, GraphicsLayer } from './Layers';
-import { WebMap } from './CustomMap';
+import { WebMap } from './Map';
 
 setDefaultOptions({ css: true });
 
@@ -133,7 +133,7 @@ class CounterWithIncrement extends React.Component<{}, CounterWithIncrementState
     }
 
     public async componentDidMount() {
-        const layer = await mapRegistry.getLayer<__esri.FeatureLayer>('testMap', 'keptLayer');
+        const layer = await mapSpy.getLayer<__esri.FeatureLayer>('testMap', 'keptLayer');
         if (layer && layer.type === 'feature') {
             await layer.when();
             const query = layer.createQuery();

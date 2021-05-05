@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { getLayer, getLayers } from './Magic';
+import * as mapSpy from './MapSpy';
 import { EsriTypeMap, loadTypedModules } from './utilities/GIS';
 import { ConstructorInstance, Diff, FirstConstructorArgument, Optional, Remove } from './utilities/Types';
 
@@ -269,7 +269,7 @@ const constructionPrep: WidgetContructionPrep[] = [
     {
         type: 'esri/widgets/Sketch',
         buildContructorParam: async (props: WidgetProperties<'esri/widgets/Sketch'>) => {
-            const layer = await getLayer<__esri.GraphicsLayer>(props.map!, props.layer);
+            const layer = await mapSpy.getLayer<__esri.GraphicsLayer>(props.map!, props.layer);
             return { view: props.view, id: props.id, layer, ...props.widgetProperties };
         }
     }, {
@@ -278,7 +278,7 @@ const constructionPrep: WidgetContructionPrep[] = [
             
             let layerInfos: __esri.LayerInfo[] | undefined;
             if (props.layers) {
-                const allLayers = await getLayers(props.view!);
+                const allLayers = await mapSpy.getLayers(props.view!);
                 console.log('Editor allLayers', allLayers);
                 if (allLayers) {
                     layerInfos = allLayers.filter(l => l.type === 'feature').map(l => ({
@@ -298,7 +298,7 @@ const constructionPrep: WidgetContructionPrep[] = [
     }, {
         type: 'esri/widgets/FeatureTable',
         buildContructorParam: async (props: WidgetProperties<'esri/widgets/FeatureTable'>) => {
-            const layer = await getLayer<__esri.FeatureLayer>(props.map!, props.layer);
+            const layer = await mapSpy.getLayer<__esri.FeatureLayer>(props.map!, props.layer);
             return {
                 view: props.view,
                 id: props.id,
