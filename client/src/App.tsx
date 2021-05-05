@@ -2,9 +2,12 @@ import React from 'react';
 // import logo from './logo.svg';
 import './App.css';
 import { setDefaultOptions } from 'esri-loader';
-import { KYTCMapWithTokenContext } from './KYTCMap';
 import settings from './appsettings';
-import { fetchToken, getLayer } from './utilities/GIS';
+import { fetchToken } from './utilities/GIS';
+import * as mapRegistry from './Magic';
+import { ExpandableHTML, ExpandableWidget, HTML, Widget } from './Widget';
+import { FeatureLayer, GraphicsLayer } from './Layers';
+import { WebMap } from './CustomMap';
 
 setDefaultOptions({ css: true });
 
@@ -16,17 +19,100 @@ async function getAGOLToken() {
     };
 }
 
+async function getGRPToken() {
+    const options = {
+        username: settings.grpAuth.user,
+        password: settings.grpAuth.password,
+        client: 'requestip',
+        expiration: '20160',
+        f: 'json'
+    } as { [key: string]: string };
+    const params = [];
+    for (let key in options) {
+        params.push(`${encodeURIComponent(key)}=${encodeURIComponent(options[key])}`)
+    }
+
+    const tokenRes = await fetch(settings.grpAuth.tokenURL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.join('&')
+    });
+
+    const tokenData = await tokenRes.json();
+    return {
+        token: tokenData.token,
+        server: 'https://test-maps.kytc.ky.gov/arcgis/rest/services'
+    };
+}
+
 function App() {
+    const testHtml = document.createElement('div');
+    testHtml.innerText = 'Hello from HTMLElement!';
+    testHtml.style.cssText = 'background-color: white; padding: 20px; width: 200px; height: 200px;';
+    const btn = document.createElement('button');
+    btn.innerText = 'Click Me';
+    btn.addEventListener('click', () => alert('yo'));
+    testHtml.appendChild(btn);
+
     return (
         <div className="App">
-            <div style={{ boxSizing: 'border-box', padding: '10px', float: 'left', width: '300px', height: '100%' }}>
-                <p>Lorem ipsum dolor set amet</p>
-                <CounterWithIncrement />
-            </div>
-            <div style={{ float: 'left', width: 'calc(100% - 300px)', height: '100%' }}>
-                <KYTCMapWithTokenContext id="22813abda6cd4058b4c4d0f593671737" lookupId="testMap" portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken ]} />
-            </div>
+            <SidePanelLayout panel={
+                <>
+                    <CounterWithIncrement />
+                    <br />
+                    <div id="legendDiv"></div>
+                    <div id="featureTableDiv"></div>
+                </>
+            } map={
+                <WebMap id="testMap" portalId="22813abda6cd4058b4c4d0f593671737" portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken, getGRPToken ]}>
+                    <ExpandableWidget id="basemapGalleryWidget" type="esri/widgets/BasemapGallery" position="top-right" expandProperties={{ expandTooltip: 'Basemap Gallery' }} />
+                    <ExpandableWidget id="layerListWidget" type="esri/widgets/LayerList" position="top-right" expandProperties={{ expandTooltip: 'Layer List' }} />
+                    <ExpandableWidget id="basemapLayerListWidget" type="esri/widgets/BasemapLayerList" position="top-right" expandProperties={{ expandTooltip: 'Basemap Layer List' }} />
+                    <ExpandableWidget id="editorWidget" type="esri/widgets/Editor" position="top-right" layers={[ 'grpLayer']} expandProperties={{ expandTooltip: 'Editor', expandIconClass: 'esri-icon-favorites' }} />
+                    <ExpandableWidget type="esri/widgets/Sketch" id="sketchWidget" layer="sketchLayer" position="top-right" expandProperties={{ expandTooltip: 'Sketch' }} />
+                    <Widget id="homeWidget" type="esri/widgets/Home" position="top-left" />
+                    <Widget id="fullscreenWidget" type="esri/widgets/Fullscreen" position="top-left" />
+                    <Widget id="legendWidget" type="esri/widgets/Legend" container="legendDiv" />
+                    <Widget id="scaleBarWidget" type="esri/widgets/ScaleBar" position="bottom-left" />
+                    {/* TODO: container doesn't work for this widget, unless it's expandable. */}
+                    <ExpandableWidget id="featureTableWidget" type="esri/widgets/FeatureTable" container="featureTableDiv" layer="grpLayer" />
+                    <ExpandableHTML position="top-left">
+                        <div style={{ backgroundColor: 'white', padding: '20px', width: '200px', height: '200px' }}>
+                            Hello from ExpandableHTML!
+                        </div>
+                    </ExpandableHTML>
+                    <HTML position="top-left">
+                        <div style={{ backgroundColor: 'white', padding: '20px', width: '200px', height: '200px' }}>
+                            Hello from HTML!
+                        </div>
+                    </HTML>
+                    <HTML position="top-left">
+                        {testHtml}
+                    </HTML>
+
+
+                    <GraphicsLayer id="sketchLayer" title="Sketch Layer" />
+                    <FeatureLayer url={settings.projectLayerURL} id="ahpLayer" title="Active Highway Plan" />
+                    <FeatureLayer url={settings.grpURL} id="grpLayer" title="Proposed Guardrail" />
+                    <FeatureLayer url="https://test-maps.kytc.ky.gov/arcgis/rest/services/Apps/KEPTSAppEdit/FeatureServer/2" id="keptLayer" title="KEPT" />
+                </WebMap>
+            } />
         </div>
+    );
+}
+
+function SidePanelLayout(props: { panel: React.ReactNode, map: React.ReactNode }) {
+    return (
+        <>
+            <div className="side-panel">
+                {props.panel}
+            </div>
+            <div className="map-panel">
+                {props.map}
+            </div>
+        </>
     );
 }
 
@@ -47,7 +133,7 @@ class CounterWithIncrement extends React.Component<{}, CounterWithIncrementState
     }
 
     public async componentDidMount() {
-        const layer = await getLayer<__esri.FeatureLayer>('testMap', 'keptLayer');
+        const layer = await mapRegistry.getLayer<__esri.FeatureLayer>('testMap', 'keptLayer');
         if (layer && layer.type === 'feature') {
             await layer.when();
             const query = layer.createQuery();
@@ -70,7 +156,7 @@ class CounterWithIncrement extends React.Component<{}, CounterWithIncrementState
                 <p>Current value: {this.state.value}</p>
                 <button onClick={this.onIncrement.bind(this)}>Increment</button>
                 <pre><code>
-                    {JSON.stringify(this.state.feature, undefined, '  ')}
+                    {this.state.feature ? JSON.stringify(this.state.feature, null, 2) : 'Querying...'}
                 </code></pre>
             </div>
         );

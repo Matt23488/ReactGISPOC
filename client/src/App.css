@@ -7,3 +7,17 @@ html, body {
     width: 100vw;
     height: 100vh;
 }
+
+.side-panel {
+    box-sizing: border-box;
+    float: left;
+    width: 30%;
+    height: 100%;
+    padding: 20px;
+}
+
+.map-panel {
+    float: left;
+    width: 70%;
+    height: 100%;
+}
