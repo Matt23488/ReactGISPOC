@@ -141,6 +141,7 @@ export function ExpandableWidget<T extends GenericWidgetConstructorKeys>(props: 
                 const [ WidgetConstructor ] = await loadTypedModules(props.type);
                 widget = new WidgetConstructor(buildWidgetProps(props as WidgetProperties<T>, false) as __esri.WidgetProperties);
             }
+            if (props.init) props.init(widget as ConstructorInstance<EsriTypeMap[T]>);
             const [ Expand ] = await loadTypedModules('esri/widgets/Expand');
 
             expand = new Expand({
