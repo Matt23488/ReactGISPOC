@@ -50,7 +50,7 @@ async function getGRPToken() {
 function App() {
     const testHtml = document.createElement('div');
     testHtml.innerText = 'Hello from HTMLElement!';
-    testHtml.style.cssText = 'background-color: white; padding: 20px; width: 200px; height: 200px;';
+    testHtml.style.cssText = 'background-color: white; padding: 20px;';
     const btn = document.createElement('button');
     btn.innerText = 'Click Me';
     btn.addEventListener('click', () => alert('yo'));
@@ -76,17 +76,20 @@ function App() {
                     <Widget id="fullscreenWidget" type="esri/widgets/Fullscreen" position="top-left" />
                     <Widget id="legendWidget" type="esri/widgets/Legend" container="legendDiv" />
                     <Widget id="scaleBarWidget" type="esri/widgets/ScaleBar" position="bottom-left" />
-                    {/* TODO: container doesn't work for this widget, unless it's expandable. */}
-                    <ExpandableWidget id="featureTableWidget" type="esri/widgets/FeatureTable" container="featureTableDiv" layer="grpLayer" />
+                    <Widget id="featureTableWidget" type="esri/widgets/FeatureTable" container="featureTableDiv" layer="grpLayer" />
                     <ExpandableHTML position="top-left">
-                        <div style={{ backgroundColor: 'white', padding: '20px', width: '200px', height: '200px' }}>
+                        <div style={{ backgroundColor: 'white', padding: '20px' }}>
                             Hello from ExpandableHTML!
                         </div>
                     </ExpandableHTML>
                     <HTML position="top-left">
-                        <div style={{ backgroundColor: 'white', padding: '20px', width: '200px', height: '200px' }}>
-                            Hello from HTML!
+                        <div style={{ backgroundColor: 'white', padding: '20px' }}>
+                            Hello from HTML! React components don't work:
+                            <CounterWithIncrement />
                         </div>
+                    </HTML>
+                    <HTML position="top-left">
+                        {'<div style="background-color: white; padding: 20px">Hello from HTML string!</div>'}
                     </HTML>
                     <HTML position="top-left">
                         {testHtml}

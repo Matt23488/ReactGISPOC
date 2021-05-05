@@ -8,10 +8,10 @@ interface LayerQueueItem {
     ready: boolean;
 }
 
-// Because the widgets load asynchronously, it's unpredictable when view.ui.add() gets called normally.
-// This solves that problem by adding the widgets to a queue as they are initialized by React,
-// and once they have all finished loading, THEN we add them to the UI in the order they
-// are initialized by React. This makes it possible to control their locations by how
+// Because the widgets load asynchronously, it's unpredictable when map.add() gets called normally.
+// This solves that problem by adding the layers to a queue as they are initialized by React,
+// and once they have all finished loading, THEN we add them to the map in the order they
+// are initialized by React. This makes it possible to control their order by how
 // you order them as components inside of a map.
 let layerQueue: LayerQueueItem[] = [];
 function queueLayer(map: __esri.Map, getLayer: () => __esri.Layer) {
