@@ -1,4 +1,5 @@
 import React from 'react';
+import { MapChild } from './utilities/GIS';
 import { topic } from './utilities/Topic';
 
 interface MagicProperties {
@@ -10,8 +11,9 @@ export default class MapSpy extends React.Component<MagicProperties> {
     public async componentDidMount() {
         await this.props.view!.when();
         console.log(`Map '${this.props.map!.get('lookupId')}' loaded`);
-        _maps.set(this.props.map!.get('lookupId'), this.props.map!);
-        topic.publish(`map-load/${this.props.map!.get('lookupId')}`, this.props.map);
+        const mapChild = { map: this.props.map!, view: this.props.view! };
+        _maps.set(this.props.map!.get('lookupId'), mapChild);
+        topic.publish(`map-load/${this.props.map!.get('lookupId')}`, mapChild);
 
         this.props.view!.on('layerview-create', async e => {
             await e.layer.when();
@@ -24,16 +26,16 @@ export default class MapSpy extends React.Component<MagicProperties> {
     public render() { return null; }
 }
 
-const _maps = new Map<string, __esri.Map>();
-export function getMap<T extends __esri.Map>(mapId: string, timeout = 10000) {
-    return new Promise<T | undefined>(resolve => {
-        if (_maps.has(mapId)) resolve(_maps.get(mapId) as T);
+const _maps = new Map<string, MapChild>();
+export function getMap<M extends __esri.Map, V extends __esri.View>(mapId: string, timeout = 10000) {
+    return new Promise<MapChild<M, V> | undefined>(resolve => {
+        if (_maps.has(mapId)) resolve(_maps.get(mapId) as MapChild<M, V>);
         else {
             const timeoutHandle = window.setTimeout(resolve, timeout);
-            const handle = topic.subscribe<T>(`map-load/${mapId}`, map => {
+            const handle = topic.subscribe<MapChild<M, V>>(`map-load/${mapId}`, mapChild => {
                 topic.unsubscribe(handle);
                 window.clearTimeout(timeoutHandle);
-                resolve(map);
+                resolve(mapChild);
             });
         }
     });

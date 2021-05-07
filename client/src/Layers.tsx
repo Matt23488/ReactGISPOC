@@ -1,5 +1,5 @@
 import React from 'react';
-import { loadTypedModules } from './utilities/GIS';
+import { loadTypedModules, MapChild } from './utilities/GIS';
 
 
 interface LayerQueueItem {
@@ -59,19 +59,18 @@ function queueLayer(map: __esri.Map, getLayer: () => __esri.Layer) {
 // }
 
 interface FeatureLayerProperties {
-    map?: __esri.Map;
-    view?: __esri.View;
     url: string;
     id?: string;
     title?: string;
 }
 
-export function FeatureLayer(props: FeatureLayerProperties) {
+export function FeatureLayer(incompleteProps: FeatureLayerProperties) {
+    const props = incompleteProps as FeatureLayerProperties & MapChild;
     console.log(`FeatureLayer '${props.id}' entry`);
     React.useEffect(() => {
         console.log(`FeatureLayer '${props.id}' useEffect`);
         let layer: __esri.FeatureLayer | undefined;
-        const onReady = queueLayer(props.map!, () => layer!);
+        const onReady = queueLayer(props.map, () => layer!);
         (async function () {
             const [FeatureLayerConstructor] = await loadTypedModules('esri/layers/FeatureLayer');
 
@@ -81,7 +80,7 @@ export function FeatureLayer(props: FeatureLayerProperties) {
 
         return function cleanup() {
             console.log(`FeatureLayer '${props.id}' cleanup`);
-            if (layer) props.map?.remove(layer);
+            if (layer) props.map.remove(layer);
         }
     });
 
@@ -89,18 +88,17 @@ export function FeatureLayer(props: FeatureLayerProperties) {
 }
 
 interface GraphicsLayerProperties {
-    map?: __esri.Map;
-    view?: __esri.View;
     id?: string;
     title?: string;
 }
 
-export function GraphicsLayer(props: GraphicsLayerProperties) {
+export function GraphicsLayer(incompleteProps: GraphicsLayerProperties) {
+    const props = incompleteProps as GraphicsLayerProperties & MapChild;
     console.log(`GraphicsLayer '${props.id}' entry`);
     React.useEffect(() => {
         console.log(`GraphicsLayer '${props.id}' useEffect`);
         let graphicsLayer: __esri.GraphicsLayer | undefined;
-        const onReady = queueLayer(props.map!, () => graphicsLayer!);
+        const onReady = queueLayer(props.map, () => graphicsLayer!);
         (async function () {
             const [GraphicsLayerConstructor] = await loadTypedModules('esri/layers/GraphicsLayer');
 
@@ -110,7 +108,7 @@ export function GraphicsLayer(props: GraphicsLayerProperties) {
 
         return function cleanup() {
             console.log(`GraphicsLayer '${props.id}' cleanup`);
-            if (graphicsLayer) props.map?.remove(graphicsLayer);
+            if (graphicsLayer) props.map.remove(graphicsLayer);
         }
     });
 

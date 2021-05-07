@@ -1,6 +1,15 @@
 import { loadModules } from 'esri-loader';
 import settings from '../appsettings';
 
+export type MapChild<M extends __esri.Map = __esri.Map, V extends __esri.View = __esri.View> = {
+    map: M;
+    view: V;
+}
+// eslint-disable-next-line
+export const MapChild = {
+    guard: (obj: any): obj is MapChild => typeof (obj as MapChild).map === 'object'
+}
+
 export async function fetchToken() {
     if (process.env.NODE_ENV === 'development') {
         const options = {

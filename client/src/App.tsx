@@ -5,7 +5,7 @@ import { setDefaultOptions } from 'esri-loader';
 import settings from './appsettings';
 import { fetchToken } from './utilities/GIS';
 import * as mapSpy from './MapSpy';
-import { ExpandableHTML, ExpandableWidget, HTML, Widget } from './Widget';
+import { ExpandableHTML, HTML, Widget } from './Widget/Widgets';
 import { FeatureLayer, GraphicsLayer } from './Layers';
 import { WebMap } from './Map';
 
@@ -62,21 +62,19 @@ function App() {
                 <>
                     <CounterWithIncrement />
                     <br />
-                    <div id="legendDiv"></div>
-                    <div id="featureTableDiv"></div>
+                    <Widget type="esri/widgets/Legend" mapId="testMap" id="legendWidget" />
+                    <Widget type="esri/widgets/FeatureTable" mapId="testMap" id="featureTableWidget" layer="grpLayer" />
                 </>
             } map={
                 <WebMap id="testMap" portalId="22813abda6cd4058b4c4d0f593671737" portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken, getGRPToken ]}>
-                    <ExpandableWidget id="basemapGalleryWidget" type="esri/widgets/BasemapGallery" position="top-right" expandProperties={{ expandTooltip: 'Basemap Gallery' }} />
-                    <ExpandableWidget id="layerListWidget" type="esri/widgets/LayerList" position="top-right" expandProperties={{ expandTooltip: 'Layer List' }} />
-                    <ExpandableWidget id="basemapLayerListWidget" type="esri/widgets/BasemapLayerList" position="top-right" expandProperties={{ expandTooltip: 'Basemap Layer List' }} />
-                    <ExpandableWidget id="editorWidget" type="esri/widgets/Editor" position="top-right" layers={[ 'grpLayer']} expandProperties={{ expandTooltip: 'Editor', expandIconClass: 'esri-icon-favorites' }} />
-                    <ExpandableWidget type="esri/widgets/Sketch" id="sketchWidget" layer="sketchLayer" position="top-right" expandProperties={{ expandTooltip: 'Sketch' }} />
-                    <Widget id="homeWidget" type="esri/widgets/Home" position="top-left" />
-                    <Widget id="fullscreenWidget" type="esri/widgets/Fullscreen" position="top-left" />
-                    <Widget id="legendWidget" type="esri/widgets/Legend" container="legendDiv" />
-                    <Widget id="scaleBarWidget" type="esri/widgets/ScaleBar" position="bottom-left" />
-                    <Widget id="featureTableWidget" type="esri/widgets/FeatureTable" container="featureTableDiv" layer="grpLayer" />
+                    <Widget type="esri/widgets/BasemapGallery" expandable={true} id="basemapGalleryWidget" position="top-right" expandProperties={{ expandTooltip: 'Basemap Gallery' }} />
+                    <Widget type="esri/widgets/LayerList" expandable={true} id="layerListWidget" position="top-right" expandProperties={{ expandTooltip: 'Layer List' }} />
+                    <Widget type="esri/widgets/BasemapLayerList" expandable={true} id="basemapLayerListWidget" position="top-right" expandProperties={{ expandTooltip: 'Basemap Layer List' }} />
+                    <Widget type="esri/widgets/Editor" expandable={true} id="editorWidget" position="top-right" layers={[ 'grpLayer']} expandProperties={{ expandTooltip: 'Editor', expandIconClass: 'esri-icon-favorites' }} />
+                    <Widget type="esri/widgets/Sketch" expandable={true} id="sketchWidget" layer="sketchLayer" position="top-right" expandProperties={{ expandTooltip: 'Sketch' }} />
+                    <Widget type="esri/widgets/Home" id="homeWidget" position="top-left" />
+                    <Widget type="esri/widgets/Fullscreen" id="fullscreenWidget" position="top-left" />
+                    <Widget type="esri/widgets/ScaleBar" id="scaleBarWidget" position="bottom-left" />
                     <ExpandableHTML position="top-left">
                         <div style={{ backgroundColor: 'white', padding: '20px' }}>
                             Hello from ExpandableHTML!
