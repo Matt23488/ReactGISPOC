@@ -129,51 +129,63 @@ class DOMWidget<T extends GenericWidgetConstructorKeys> extends React.Component<
     }
 }
 
-class DOMWidgetContainer extends React.Component<{ domId: string, className?: string, style?: React.CSSProperties }> {
+class DOMWidgetContainer extends React.Component<{ domId: string, className?: string, style?: React.CSSProperties, children?: JSX.Element }> {
     public shouldComponentUpdate() {
         return false;
     }
 
     public render() {
-        return <div id={this.props.domId} className={this.props.className} style={this.props.style} />;
+        return <div id={this.props.domId} className={this.props.className} style={this.props.style}>{this.props.children}</div>;
     }
 }
 
 interface ExpandableHTMLProperties {
-    children?: JSX.Element | string | HTMLElement;
+    children?: JSX.Element;// | string | HTMLElement;
     position?: __esri.UIAddComponent['position'];
     expandProperties?: Optional<Remove<__esri.ExpandProperties, 'content' | 'view'>>;
 }
-export function ExpandableHTML(incompleteProps: ExpandableHTMLProperties) {
-    console.log('ExpandableHTML entry');
-    const props = incompleteProps as ExpandableHTMLProperties & MapChild;
-    React.useEffect(() => {
-        console.log('ExpandableHTML useEffect');
-        let expand: __esri.Expand | undefined;
-        const { id, onReady } = queueWidget(props.view, () => expand!, props.position);
-        (async function () {
-            const [ Expand ] = await loadTypedModules('esri/widgets/Expand');
 
-            let content: string | Node | undefined;
-            if (typeof props.children === 'string' || typeof props.children === 'undefined' || props.children instanceof HTMLElement) {
-                content = props.children;
-            } else content = renderToStaticMarkup(props.children);
+interface ExpandableHTMLState {
+    domId: string;
+    expand?: __esri.Expand;
+    id: string;
+}
 
-            expand = new Expand({
-                content,
-                ...props.expandProperties
+// TODO: Integrate this with HTML below
+export class ExpandableHTML extends React.Component<ExpandableHTMLProperties, ExpandableHTMLState> {
+    public constructor(props: ExpandableHTMLProperties) {
+        super(props);
+        this.state = { domId: uuidv4(), id: '' };
+    }
+
+    public shouldComponentUpdate() { return false; }
+    public async componentDidMount() {
+        const props = this.props as ExpandableHTMLProperties & MapChild;
+        const { id, onReady } = queueWidget(props.view, () => this.state.expand!, props.position);
+        try {
+            const [Expand] = await loadTypedModules('esri/widgets/Expand');
+            const expand = new Expand({
+                content: document.getElementById(this.state.domId) || undefined,
+                ...this.props.expandProperties
             });
             onReady();
-        })();
 
-        return function cleanup() {
-            console.log('ExpandableHTML cleanup');
+            this.setState({ expand, id });
+        } catch(e) {
             dequeueWidget(id);
-            if (expand) props.view.ui.remove(expand);
+            console.error(e);
         }
-    });
+    }
 
-    return null;
+    public componentWillUnmount() {
+        const props = this.props as ExpandableHTMLProperties & MapChild;
+        dequeueWidget(this.state.id);
+        if (this.state.expand) props.view.ui.remove(this.state.expand);
+    }
+
+    public render() {
+        return <DOMWidgetContainer domId={this.state.domId}>{this.props.children}</DOMWidgetContainer>
+    }
 }
 
 interface HTMLProperties {

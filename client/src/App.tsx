@@ -63,7 +63,7 @@ function App() {
                     <CounterWithIncrement />
                     <br />
                     <Widget type="esri/widgets/Legend" mapId="testMap" id="legendWidget" />
-                    <Widget type="esri/widgets/FeatureTable" mapId="testMap" id="featureTableWidget" layer="grpLayer" />
+                    {/* <Widget type="esri/widgets/FeatureTable" mapId="testMap" id="featureTableWidget" layer="grpLayer" /> */}
                 </>
             } map={
                 <WebMap id="testMap" portalId="22813abda6cd4058b4c4d0f593671737" portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken, getGRPToken ]}>
@@ -78,6 +78,7 @@ function App() {
                     <ExpandableHTML position="top-left">
                         <div style={{ backgroundColor: 'white', padding: '20px' }}>
                             Hello from ExpandableHTML!
+                            <CounterWithIncrement />
                         </div>
                     </ExpandableHTML>
                     <HTML position="top-left">
