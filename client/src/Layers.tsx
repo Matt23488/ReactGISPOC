@@ -1,5 +1,6 @@
 import React from 'react';
-import { loadTypedModules, MapChild } from './utilities/GIS';
+import { MapContext } from './Map';
+import { loadTypedModules } from './utilities/GIS';
 
 
 interface LayerQueueItem {
@@ -8,7 +9,7 @@ interface LayerQueueItem {
     ready: boolean;
 }
 
-// Because the widgets load asynchronously, it's unpredictable when map.add() gets called normally.
+// Because the layers load asynchronously, it's unpredictable when map.add() gets called normally.
 // This solves that problem by adding the layers to a queue as they are initialized by React,
 // and once they have all finished loading, THEN we add them to the map in the order they
 // are initialized by React. This makes it possible to control their order by how
@@ -64,13 +65,13 @@ interface FeatureLayerProperties {
     title?: string;
 }
 
-export function FeatureLayer(incompleteProps: FeatureLayerProperties) {
-    const props = incompleteProps as FeatureLayerProperties & MapChild;
+export function FeatureLayer(props: FeatureLayerProperties) {
+    const context = React.useContext(MapContext);
     console.log(`FeatureLayer '${props.id}' entry`);
     React.useEffect(() => {
         console.log(`FeatureLayer '${props.id}' useEffect`);
         let layer: __esri.FeatureLayer | undefined;
-        const onReady = queueLayer(props.map, () => layer!);
+        const onReady = queueLayer(context.map, () => layer!);
         (async function () {
             const [FeatureLayerConstructor] = await loadTypedModules('esri/layers/FeatureLayer');
 
@@ -80,7 +81,7 @@ export function FeatureLayer(incompleteProps: FeatureLayerProperties) {
 
         return function cleanup() {
             console.log(`FeatureLayer '${props.id}' cleanup`);
-            if (layer) props.map.remove(layer);
+            if (layer) context.map.remove(layer);
         }
     });
 
@@ -92,13 +93,13 @@ interface GraphicsLayerProperties {
     title?: string;
 }
 
-export function GraphicsLayer(incompleteProps: GraphicsLayerProperties) {
-    const props = incompleteProps as GraphicsLayerProperties & MapChild;
+export function GraphicsLayer(props: GraphicsLayerProperties) {
+    const context = React.useContext(MapContext);
     console.log(`GraphicsLayer '${props.id}' entry`);
     React.useEffect(() => {
         console.log(`GraphicsLayer '${props.id}' useEffect`);
         let graphicsLayer: __esri.GraphicsLayer | undefined;
-        const onReady = queueLayer(props.map, () => graphicsLayer!);
+        const onReady = queueLayer(context.map, () => graphicsLayer!);
         (async function () {
             const [GraphicsLayerConstructor] = await loadTypedModules('esri/layers/GraphicsLayer');
 
@@ -108,7 +109,7 @@ export function GraphicsLayer(incompleteProps: GraphicsLayerProperties) {
 
         return function cleanup() {
             console.log(`GraphicsLayer '${props.id}' cleanup`);
-            if (graphicsLayer) props.map.remove(graphicsLayer);
+            if (graphicsLayer) context.map.remove(graphicsLayer);
         }
     });
 

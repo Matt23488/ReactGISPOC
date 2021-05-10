@@ -3,11 +3,12 @@ import React from 'react';
 import './App.css';
 import { setDefaultOptions } from 'esri-loader';
 import settings from './appsettings';
-import { fetchToken } from './utilities/GIS';
-import * as mapSpy from './MapSpy';
+import { fetchToken, MapChild } from './utilities/GIS';
+// import * as mapSpy from './MapSpy';
 import { MapComponent, Widget } from './Widget/Widgets';
 import { FeatureLayer, GraphicsLayer } from './Layers';
-import { WebMap } from './Map';
+import { MapContext, MapProvider, WebMap } from './Map';
+import { Optional } from './utilities/Types';
 
 setDefaultOptions({ css: true });
 
@@ -59,33 +60,46 @@ function App() {
     return (
         <div className="App">
             <SidePanelLayout panel={
-                <>
-                    <CounterWithIncrement />
-                    <br />
-                    <Widget type="esri/widgets/Legend" mapId="testMap" id="legendWidget" />
-                    {/* <Widget type="esri/widgets/FeatureTable" mapId="testMap" id="featureTableWidget" layer="grpLayer" /> */}
-                </>
+                <MapProvider mapId="testMap">
+                    <div style={{ border: '1px solid black' }}>
+                        <h1>Legend:</h1>
+                        <Widget type="esri/widgets/Legend" />
+                    </div>
+                </MapProvider>
             } map={
                 <WebMap id="testMap" portalId="22813abda6cd4058b4c4d0f593671737" portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken, getGRPToken ]}>
-                    <Widget type="esri/widgets/BasemapGallery" expandable={true} id="basemapGalleryWidget" position="top-right" expandProperties={{ expandTooltip: 'Basemap Gallery' }} />
-                    <Widget type="esri/widgets/LayerList" expandable={true} id="layerListWidget" position="top-right" expandProperties={{ expandTooltip: 'Layer List' }} />
-                    <Widget type="esri/widgets/BasemapLayerList" expandable={true} id="basemapLayerListWidget" position="top-right" expandProperties={{ expandTooltip: 'Basemap Layer List' }} />
-                    <Widget type="esri/widgets/Editor" expandable={true} id="editorWidget" position="top-right" layers={[ 'grpLayer']} expandProperties={{ expandTooltip: 'Editor', expandIconClass: 'esri-icon-favorites' }} />
-                    <Widget type="esri/widgets/Sketch" expandable={true} id="sketchWidget" layer="sketchLayer" position="top-right" expandProperties={{ expandTooltip: 'Sketch' }} />
-                    <Widget type="esri/widgets/Home" id="homeWidget" position="top-left" />
-                    <Widget type="esri/widgets/Fullscreen" id="fullscreenWidget" position="top-left" />
-                    <Widget type="esri/widgets/ScaleBar" id="scaleBarWidget" position="bottom-left" />
-                    <MapComponent position="top-left" expandable={true}>
-                        <div style={{ backgroundColor: 'white', padding: '20px' }}>
-                            Hello from MapComponent!
-                            <CounterWithIncrement />
-                        </div>
+                    <MapComponent expandable={true} position="top-right" expandProperties={{ expandTooltip: 'Basemap Gallery', expandIconClass: 'esri-icon-basemap' }}>
+                        <Widget type="esri/widgets/BasemapGallery" id="basemapGalleryWidget" />
+                        <p>sup</p>
+                    </MapComponent>
+                    <MapComponent expandable={true} position="top-right" expandProperties={{ expandTooltip: 'Layer List', expandIconClass: 'esri-icon-layer-list' }}>
+                        <Widget type="esri/widgets/LayerList" id="layerListWidget" />
+                    </MapComponent>
+                    <MapComponent expandable={true} position="top-right" expandProperties={{ expandTooltip: 'Basemap Layer List', expandIconClass: 'esri-icon-layer-list' }}>
+                        <Widget type="esri/widgets/BasemapLayerList" id="basemapLayerListWidget" />
+                    </MapComponent>
+                    <MapComponent expandable={true} position="top-right" expandProperties={{ expandTooltip: 'Editor', expandIconClass: 'esri-icon-favorites' }}>
+                        <Widget type="esri/widgets/Editor" id="editorWidget" layers={[ 'grpLayer' ]} />
+                    </MapComponent>
+                    <MapComponent expandable={true} position="top-right" expandProperties={{ expandTooltip: 'Sketch', expandIconClass: 'esri-icon-edit' }}>
+                        <Widget type="esri/widgets/Sketch" id="sketchWidget" layer="sketchLayer" />
                     </MapComponent>
                     <MapComponent position="top-left">
-                        <div style={{ backgroundColor: 'white', padding: '20px' }}>
-                            Hello from MapComponent! React components DO work:
-                            <CounterWithIncrement />
-                        </div>
+                        <Widget type="esri/widgets/Home" id="homeWidget" />
+                    </MapComponent>
+                    <MapComponent position="top-left">
+                        <Widget type="esri/widgets/Fullscreen" id="fullscreenWidget" />
+                    </MapComponent>
+                    <MapComponent position="bottom-left">
+                        <Widget type="esri/widgets/ScaleBar" id="scaleBarWidget" />
+                    </MapComponent>
+                    <MapComponent position="top-left" expandable={true} expandProperties={{ expandTooltip: 'React Component' }} style={{ backgroundColor: 'white', padding: '20px', minWidth: '100%' }}>
+                        Hello from MapComponent! React components DO work:
+                        <ReactComponentTest layer="keptLayer" />
+                    </MapComponent>
+                    <MapComponent position="top-left" style={{ backgroundColor: 'white', padding: '20px' }}>
+                        Hello from MapComponent! React components DO work:
+                        <ReactComponentTest layer="keptLayer" />
                     </MapComponent>
 
 
@@ -114,12 +128,18 @@ function SidePanelLayout(props: { panel: React.ReactNode, map: React.ReactNode }
 
 export default App;
 
-interface CounterWithIncrementState {
+interface ReactComponentTestProperties extends Optional<MapChild> {
+    layer: string;
+}
+
+interface ReactComponentTestState {
     feature: any;
     value: number;
 }
-class CounterWithIncrement extends React.Component<{}, CounterWithIncrementState> {
-    public constructor(props: {}) {
+class ReactComponentTest extends React.Component<ReactComponentTestProperties, ReactComponentTestState> {
+    static contextType = MapContext;
+
+    public constructor(props: ReactComponentTestProperties) {
         super(props);
 
         this.state = {
@@ -129,9 +149,9 @@ class CounterWithIncrement extends React.Component<{}, CounterWithIncrementState
     }
 
     public async componentDidMount() {
-        const layer = await mapSpy.getLayer<__esri.FeatureLayer>('testMap', 'keptLayer');
+        await this.context.view.when();
+        const layer = this.context.map.findLayerById(this.props.layer) as __esri.FeatureLayer;
         if (layer && layer.type === 'feature') {
-            await layer.when();
             const query = layer.createQuery();
             query.where = "1=1";
             query.outFields = ["*"];

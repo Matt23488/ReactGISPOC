@@ -1,56 +1,38 @@
 import { EsriTypeMap, loadTypedModules, MapChild } from '../utilities/GIS';
 import { ConstructorInstance, Diff, FirstConstructorArgument } from '../utilities/Types';
-import { DOMWidgetProperties, GenericWidgetConstructorKeys, MapChildWidgetProperties, MapWidgetProperties, WidgetProperties } from './WidgetTypes';
-import * as mapSpy from '../MapSpy';
+import { GenericWidgetConstructorKeys, WidgetProperties } from './WidgetTypes';
 
-export function loadWidget<T extends GenericWidgetConstructorKeys>(props: MapWidgetProperties<T, false> & MapChild): Promise<__esri.Widget>;
-export function loadWidget<T extends GenericWidgetConstructorKeys>(props: MapWidgetProperties<T, true> & MapChild): Promise<[__esri.Widget,__esri.Expand]>;
-export function loadWidget<T extends GenericWidgetConstructorKeys>(props: DOMWidgetProperties<T> & MapChild): Promise<__esri.Widget>;
-export async function loadWidget<T extends GenericWidgetConstructorKeys, U extends boolean = false>(props: WidgetProperties<T, U>): Promise<__esri.Widget | [__esri.Widget,__esri.Expand]> {
+export async function loadWidget<T extends GenericWidgetConstructorKeys>(props: WidgetProperties<T>, mapContext: MapChild, domId: string) {
     let widget: __esri.Widget | undefined;
     const widgetInitializer = initDefinitions.find(i => i.type === props.type);
-    if (WidgetProperties.isExpandableMapWidget(props)) {
-        const [ WidgetConstructor, Expand ] = await loadTypedModules(props.type, 'esri/widgets/Expand');
-        if (widgetInitializer) widget = await widgetInitializer.init(props);
-        else widget = new WidgetConstructor(buildWidgetProps(props as any) as __esri.WidgetProperties);
-
-        const expand = new Expand({
-            view: props.view as __esri.View & { type: '2d' | '3d' },
-            content: widget,
-            ...props.expandProperties
-        });
-        return [widget as ConstructorInstance<EsriTypeMap[T]>, expand];
-    }
-
-    if (widgetInitializer) widget = await widgetInitializer.init(props);
+    if (widgetInitializer) widget = await widgetInitializer.init(props, mapContext, domId);
     else {
         const [ WidgetConstructor ] = await loadTypedModules(props.type);
-        widget = new WidgetConstructor(buildWidgetProps(props as any) as __esri.WidgetProperties);
+        widget = new WidgetConstructor(buildWidgetProps<T>(props, mapContext, domId) as __esri.WidgetProperties);
     }
+
     return widget as ConstructorInstance<EsriTypeMap[T]>;
 }
 
-export function buildWidgetProps<T extends GenericWidgetConstructorKeys>(props: MapWidgetProperties<T, boolean> & MapChild): Diff<FirstConstructorArgument<EsriTypeMap[T]>, undefined>;
-export function buildWidgetProps<T extends GenericWidgetConstructorKeys>(props: DOMWidgetProperties<T> & MapChild): Diff<FirstConstructorArgument<EsriTypeMap[T]>, undefined>;
-export function buildWidgetProps<T extends GenericWidgetConstructorKeys, U extends boolean = false>(props: MapChildWidgetProperties<T, U>) {
+function buildWidgetProps<T extends GenericWidgetConstructorKeys>(props: WidgetProperties<T>, mapContext: MapChild, domId: string) {
     return {
-        view: (MapChild.guard(props) ? props.view : undefined),
+        view: mapContext.view,
         id: props.id,
-        container: (WidgetProperties.isDOMWidget(props as WidgetProperties<T, U>) ? props.domId : undefined),
+        container: domId,
         ...props.widgetProperties
     } as Diff<FirstConstructorArgument<EsriTypeMap[T]>, undefined>;
 }
 
 interface WidgetInitDefinition {
     type: GenericWidgetConstructorKeys;
-    init(props: MapChildWidgetProperties<any, any>): Promise<__esri.Widget>;
+    init(props: WidgetProperties<any>, mapContext: MapChild, domId: string): Promise<__esri.Widget>;
 }
 export const initDefinitions: WidgetInitDefinition[] = [
     {
         type: 'esri/widgets/Fullscreen',
-        async init(props: MapChildWidgetProperties<'esri/widgets/Fullscreen', boolean>) {
+        async init(props: WidgetProperties<'esri/widgets/Fullscreen'>, mapContext: MapChild, domId: string) {
             const [ Fullscreen, watchUtils ] = await loadTypedModules(props.type, 'esri/core/watchUtils')
-            const widgetProperties = buildWidgetProps(props as any) as __esri.FullscreenProperties;
+            const widgetProperties = buildWidgetProps(props, mapContext, domId) as __esri.FullscreenProperties;
             const widget = new Fullscreen(widgetProperties);
             watchUtils.watch(widget.viewModel, 'state', (value: __esri.FullscreenViewModel['state']) => {
                 if (value === 'ready') {
@@ -63,24 +45,25 @@ export const initDefinitions: WidgetInitDefinition[] = [
         }
     }, {
         type: 'esri/widgets/Sketch',
-        async init(props: MapChildWidgetProperties<'esri/widgets/Sketch'>) {
-            const [ layer, [ Sketch ]] = await Promise.all([mapSpy.getLayer<__esri.GraphicsLayer>(props.map, props.layer), loadTypedModules(props.type)]);
-            const widgetProperties = buildWidgetProps(props as any) as __esri.SketchProperties;
+        async init(props: WidgetProperties<'esri/widgets/Sketch'>, mapContext: MapChild, domId: string) {
+            const [ Sketch ] = await loadTypedModules(props.type);
+            const layer = mapContext.map.layers.find(l => l.id === props.layer);
+            
+            const widgetProperties = buildWidgetProps(props, mapContext, domId) as __esri.SketchProperties;
             widgetProperties.layer = layer;
             return new Sketch(widgetProperties);
         }
     }, {
         type: 'esri/widgets/Editor',
-        async init(props: MapChildWidgetProperties<'esri/widgets/Editor', boolean>) {
+        async init(props: WidgetProperties<'esri/widgets/Editor'>, mapContext: MapChild, domId: string) {
             const [ Editor ] = await loadTypedModules(props.type);
             
-            const widgetProperties = buildWidgetProps(props as any) as __esri.EditorProperties;
+            const widgetProperties = buildWidgetProps(props, mapContext, domId) as __esri.EditorProperties;
             if (props.layers) {
-                const allLayers = await mapSpy.getLayers(props.view);
-                console.log('Editor allLayers', allLayers);
-                if (allLayers) {
-                    widgetProperties.layerInfos = allLayers.filter(l => l.type === 'feature').map(l => ({
-                        view: props.view,
+                const allLayers = mapContext.map.layers.toArray().filter(l => l.type === 'feature');
+                await Promise.all(allLayers.map(l => l.when()));
+                    widgetProperties.layerInfos = allLayers.map(l => ({
+                        view: mapContext.view,
                         layer: l as __esri.FeatureLayer,
                         enabled: props.layers!.indexOf(l.id) >= 0,
                         fieldConfig: (l as __esri.FeatureLayer).fields.map(f => ({
@@ -89,23 +72,23 @@ export const initDefinitions: WidgetInitDefinition[] = [
                         } as __esri.FieldConfig))
                     } as __esri.LayerInfo));
                 }
-            }
 
             return new Editor(widgetProperties);
         }
     }, {
         type: 'esri/widgets/FeatureTable',
-        async init(props: MapChildWidgetProperties<'esri/widgets/FeatureTable', boolean>) {
-            const layer = await mapSpy.getLayer<__esri.FeatureLayer>(props.map, props.layer);
+        async init(props: WidgetProperties<'esri/widgets/FeatureTable'>, mapContext: MapChild, domId: string) {
             const [FeatureTable, watchUtils] = await loadTypedModules('esri/widgets/FeatureTable', 'esri/core/watchUtils');
-            const widgetProperties = buildWidgetProps(props as any) as __esri.FeatureTableProperties;
+            const layer = mapContext.map.layers.find(l => l.id === props.layer) as __esri.FeatureLayer;
+
+            const widgetProperties = buildWidgetProps(props, mapContext, domId) as __esri.FeatureTableProperties;
             widgetProperties.layer = layer;
-            widgetProperties.fieldConfigs = layer?.fields.map(f => ({ name: f.name, label: f.alias }));
+            widgetProperties.fieldConfigs = layer.fields.map(f => ({ name: f.name, label: f.alias }));
             const widget = new FeatureTable(widgetProperties);
 
-            let prevExtent = (props.view as __esri.MapView).extent;
-            watchUtils.whenFalse(props.view, 'updating', () => {
-                const extent = (props.view as __esri.MapView).extent
+            let prevExtent = (mapContext.view as __esri.MapView).extent;
+            watchUtils.whenFalse(mapContext.view, 'updating', () => {
+                const extent = (mapContext.view as __esri.MapView).extent
                 if (extent && !extent.equals(prevExtent)) {
                     widget.filterGeometry = extent;
                     prevExtent = extent;
@@ -122,8 +105,8 @@ export const initDefinitions: WidgetInitDefinition[] = [
                 changes.added.forEach(item => features.push({ feature: item.feature }));
             });
 
-            props.view.on('immediate-click', event => {
-                (props.view as __esri.MapView).hitTest(event).then(response => {
+            mapContext.view.on('immediate-click', event => {
+                (mapContext.view as __esri.MapView).hitTest(event).then(response => {
                     const candidate = response.results.find(result => result.graphic && result.graphic.layer === layer);
                     candidate && widget.selectRows(candidate!.graphic);
                 });

@@ -1,7 +1,7 @@
 import { loadModules } from 'esri-loader';
 import settings from '../appsettings';
 
-export type MapChild<M extends __esri.Map = __esri.Map, V extends __esri.View = __esri.View> = {
+export interface MapChild<M extends __esri.Map = __esri.Map, V extends __esri.View = __esri.View> {
     map: M;
     view: V;
 }
