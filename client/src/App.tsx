@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 // import logo from './logo.svg';
 import './App.css';
 import { setDefaultOptions } from 'esri-loader';
 import settings from './appsettings';
 import { fetchToken, MapChild } from './utilities/GIS';
-// import * as mapSpy from './MapSpy';
 import { MapComponent, Widget } from './Widget/Widgets';
 import { FeatureLayer, GraphicsLayer } from './Layers';
 import { MapContext, MapProvider, WebMap } from './Map';
 import { Optional } from './utilities/Types';
+import { WidgetProperties } from './Widget/WidgetTypes';
 
 setDefaultOptions({ css: true });
 
@@ -65,6 +65,8 @@ function App() {
                         <h1>Legend:</h1>
                         <Widget type="esri/widgets/Legend" />
                     </div>
+
+                    {/* <Widget type="esri/widgets/FeatureTable" /> */}
                 </MapProvider>
             } map={
                 <WebMap id="testMap" portalId="22813abda6cd4058b4c4d0f593671737" portalUrl={settings.portalURL} tokenFetchers={[ getAGOLToken, getGRPToken ]}>
@@ -99,10 +101,13 @@ function App() {
                     </MapComponent>
                     <MapComponent position="top-left" style={{ backgroundColor: 'white', padding: '20px' }}>
                         Hello from MapComponent! React components DO work:
-                        <ReactComponentTest layer="keptLayer" />
+                        <ReactComponentTest layer="grpLayer" />
                     </MapComponent>
                     <MapComponent position="manual" style={{ left: '59px', top: '173px' }}>
                         <button className="map-ui-btn">&hearts;</button>
+                    </MapComponent>
+                    <MapComponent position="top-right" expandable={true} expandProperties={{ expandTooltip: 'Print', expandIconClass: 'esri-icon-printer' }}>
+                        <Widget type="esri/widgets/Print" widgetProperties={{ printServiceUrl: settings.printServiceURL } as any} />
                     </MapComponent>
 
 
@@ -138,6 +143,8 @@ interface ReactComponentTestProperties extends Optional<MapChild> {
 interface ReactComponentTestState {
     feature: any;
     value: number;
+    inspector: string;
+    layer?: __esri.FeatureLayer;
 }
 class ReactComponentTest extends React.Component<ReactComponentTestProperties, ReactComponentTestState> {
     static contextType = MapContext;
@@ -147,26 +154,38 @@ class ReactComponentTest extends React.Component<ReactComponentTestProperties, R
 
         this.state = {
             feature: null,
-            value: 0
+            value: 0,
+            inspector: '',
         };
     }
 
     public async componentDidMount() {
         await this.context.view.when();
         const layer = this.context.map.findLayerById(this.props.layer) as __esri.FeatureLayer;
-        if (layer && layer.type === 'feature') {
-            const query = layer.createQuery();
-            query.where = "1=1";
-            query.outFields = ["*"];
-            query.num = 1;
-
-            const features = await layer.queryFeatures(query);
-            this.setState({ feature: features.features[0].attributes });
-        }
+        this.setState({ layer });
     }
 
     private onIncrement() {
         this.setState({ value: this.state.value + 1 });
+    }
+
+    private onInspectorChange(event: ChangeEvent<HTMLInputElement>) {
+        this.setState({ inspector: event.target.value });
+    }
+
+    private onQuery() {
+        if (this.state.layer && this.state.layer.type === 'feature') {
+            const query = this.state.layer.createQuery();
+            query.where = `InspectedBy='${this.state.inspector}'`;
+            query.outFields = ["*"];
+            query.num = 1;
+
+            this.state.layer.queryFeatures(query).then(features => {
+                let feature: any;
+                if (features.features[0]) feature = features.features[0].attributes;
+                this.setState({ feature });
+            });
+        }
     }
 
     public render () {
@@ -174,8 +193,12 @@ class ReactComponentTest extends React.Component<ReactComponentTestProperties, R
             <div>
                 <p>Current value: {this.state.value}</p>
                 <button onClick={this.onIncrement.bind(this)}>Increment</button>
+                <br />
+                Inspector:
+                <input type="text" value={this.state.inspector} onChange={this.onInspectorChange.bind(this)} />
+                <button onClick={this.onQuery.bind(this)}>Query</button>
                 <pre><code>
-                    {this.state.feature ? JSON.stringify(this.state.feature, null, 2) : 'Querying...'}
+                    {this.state.feature ? JSON.stringify(this.state.feature, null, 2) : `No Inspector '${this.state.inspector}'`}
                 </code></pre>
             </div>
         );

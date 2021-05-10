@@ -22,7 +22,7 @@ interface SpecializedWidgetPropertyRemoverTypeMap {
 }
 type SpecializedWidgetPropertyRemover<T extends GenericWidgetConstructorKeys> = T extends keyof SpecializedWidgetPropertyRemoverTypeMap ? SpecializedWidgetPropertyRemoverTypeMap[T] : never;
 
-
+// TODO: widgetProperties is not working anymore. It seems to be doing a union on all possible widget properties instead of just those associated with T.
 export type WidgetProperties<T extends GenericWidgetConstructorKeys> = SpecializedWidgetProperties<T> & {
     type: T;
     widgetProperties?: Optional<Remove<WidgetPropertiesTypeMap[T], keyof WidgetProperties<T> | SpecializedWidgetPropertyRemover<T>>>;
