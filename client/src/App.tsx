@@ -8,7 +8,6 @@ import { MapComponent, Widget } from './Widget/Widgets';
 import { FeatureLayer, GraphicsLayer } from './Layers';
 import { MapContext, MapProvider, WebMap } from './Map';
 import { Optional } from './utilities/Types';
-import { WidgetProperties } from './Widget/WidgetTypes';
 
 setDefaultOptions({ css: true });
 
