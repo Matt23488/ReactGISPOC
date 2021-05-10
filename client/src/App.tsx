@@ -5,7 +5,7 @@ import { setDefaultOptions } from 'esri-loader';
 import settings from './appsettings';
 import { fetchToken } from './utilities/GIS';
 import * as mapSpy from './MapSpy';
-import { ExpandableHTML, HTML, Widget } from './Widget/Widgets';
+import { MapComponent, Widget } from './Widget/Widgets';
 import { FeatureLayer, GraphicsLayer } from './Layers';
 import { WebMap } from './Map';
 
@@ -75,24 +75,18 @@ function App() {
                     <Widget type="esri/widgets/Home" id="homeWidget" position="top-left" />
                     <Widget type="esri/widgets/Fullscreen" id="fullscreenWidget" position="top-left" />
                     <Widget type="esri/widgets/ScaleBar" id="scaleBarWidget" position="bottom-left" />
-                    <ExpandableHTML position="top-left">
+                    <MapComponent position="top-left" expandable={true}>
                         <div style={{ backgroundColor: 'white', padding: '20px' }}>
-                            Hello from ExpandableHTML!
+                            Hello from MapComponent!
                             <CounterWithIncrement />
                         </div>
-                    </ExpandableHTML>
-                    <HTML position="top-left">
+                    </MapComponent>
+                    <MapComponent position="top-left">
                         <div style={{ backgroundColor: 'white', padding: '20px' }}>
-                            Hello from HTML! React components don't work:
+                            Hello from MapComponent! React components DO work:
                             <CounterWithIncrement />
                         </div>
-                    </HTML>
-                    <HTML position="top-left">
-                        {'<div style="background-color: white; padding: 20px">Hello from HTML string!</div>'}
-                    </HTML>
-                    <HTML position="top-left">
-                        {testHtml}
-                    </HTML>
+                    </MapComponent>
 
 
                     <GraphicsLayer id="sketchLayer" title="Sketch Layer" />

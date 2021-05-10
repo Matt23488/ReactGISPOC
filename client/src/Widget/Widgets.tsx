@@ -139,38 +139,43 @@ class DOMWidgetContainer extends React.Component<{ domId: string, className?: st
     }
 }
 
-interface ExpandableHTMLProperties {
+interface MapComponentProperties {
     children?: JSX.Element;// | string | HTMLElement;
     position?: __esri.UIAddComponent['position'];
     expandProperties?: Optional<Remove<__esri.ExpandProperties, 'content' | 'view'>>;
+    expandable?: boolean;
 }
 
-interface ExpandableHTMLState {
+interface MapComponentState {
     domId: string;
-    expand?: __esri.Expand;
+    viewTarget?: __esri.Expand | HTMLElement;
     id: string;
 }
 
-// TODO: Integrate this with HTML below
-export class ExpandableHTML extends React.Component<ExpandableHTMLProperties, ExpandableHTMLState> {
-    public constructor(props: ExpandableHTMLProperties) {
+export class MapComponent extends React.Component<MapComponentProperties, MapComponentState> {
+    public constructor(props: MapComponentProperties) {
         super(props);
         this.state = { domId: uuidv4(), id: '' };
     }
 
     public shouldComponentUpdate() { return false; }
     public async componentDidMount() {
-        const props = this.props as ExpandableHTMLProperties & MapChild;
-        const { id, onReady } = queueWidget(props.view, () => this.state.expand!, props.position);
+        console.log(`MapComponent ${this.state.domId} componentDidMount`);
+        const props = this.props as MapComponentProperties & MapChild;
+        const { id, onReady } = queueWidget(props.view, () => this.state.viewTarget!, props.position);
         try {
-            const [Expand] = await loadTypedModules('esri/widgets/Expand');
-            const expand = new Expand({
-                content: document.getElementById(this.state.domId) || undefined,
-                ...this.props.expandProperties
-            });
+            if (props.expandable) {
+                const [Expand] = await loadTypedModules('esri/widgets/Expand');
+                const expand = new Expand({
+                    content: document.getElementById(this.state.domId) || undefined,
+                    ...this.props.expandProperties
+                });
+                this.setState({ viewTarget: expand, id });
+            } else {
+                this.setState({ viewTarget: document.getElementById(this.state.domId)! });
+            }
             onReady();
 
-            this.setState({ expand, id });
         } catch(e) {
             dequeueWidget(id);
             console.error(e);
@@ -178,47 +183,14 @@ export class ExpandableHTML extends React.Component<ExpandableHTMLProperties, Ex
     }
 
     public componentWillUnmount() {
-        const props = this.props as ExpandableHTMLProperties & MapChild;
+        console.log(`MapComponent ${this.state.domId} componentWillUnmount`);
+        const props = this.props as MapComponentProperties & MapChild;
         dequeueWidget(this.state.id);
-        if (this.state.expand) props.view.ui.remove(this.state.expand);
+        if (this.state.viewTarget) props.view.ui.remove(this.state.viewTarget);
     }
 
     public render() {
+        console.log(`MapComponent ${this.state.domId} render`);
         return <DOMWidgetContainer domId={this.state.domId}>{this.props.children}</DOMWidgetContainer>
     }
-}
-
-interface HTMLProperties {
-    children: JSX.Element | string | HTMLElement;
-    position?: __esri.UIAddComponent['position'];
-}
-
-export function HTML(incompleteProps: HTMLProperties) {
-    console.log('HTML entry');
-    const props = incompleteProps as HTMLProperties & MapChild;
-    React.useEffect(() => {
-        console.log('HTML useEffect');
-        let content = props.children;
-
-        if (typeof content !== 'string' && !(content instanceof HTMLElement)) {
-            content = renderToStaticMarkup(content);
-        }
-
-        if (typeof content === 'string') {
-            const dummy = document.createElement('div');
-            dummy.innerHTML = content;
-            content = dummy.children[0] as HTMLElement;
-        }
-        
-        const { id, onReady } = queueWidget(props.view, () => content as HTMLElement, props.position);
-        onReady();
-
-        return function cleanup() {
-            console.log('HTML cleanup');
-            dequeueWidget(id);
-            props.view.ui.remove(content as HTMLElement);
-        }
-    });
-
-    return null;
 }
