@@ -39,17 +39,10 @@ async function initMap(props: CommonProperties) {
     }
 }
 
-type LoadsMapContext = ({
-    contextReady: true;
-} & MapChild) | {
-    contextReady: false;
-    map?: undefined;
-    view?: undefined;
-};
-
-type MapState = LoadsMapContext & {
+interface MapState {
     mapReady: boolean;
-};
+    context?: MapChild;
+}
 
 export const MapContext = React.createContext<MapChild>({ map: {} as __esri.Map, view: {} as __esri.View });
 
@@ -77,7 +70,6 @@ export class Map extends React.Component<MapProperties, MapState> {
 
         this.state = {
             mapReady: !mapNeedsInit(props),
-            contextReady: false,
         };
     }
 
@@ -91,7 +83,7 @@ export class Map extends React.Component<MapProperties, MapState> {
     private onLoad(map: __esri.Map, view: __esri.MapView | __esri.SceneView) {
         addContext(this.props.id, { map, view });
         if (this.props.onLoad) this.props.onLoad(map, view);
-        this.setState({ contextReady: true, map, view });
+        this.setState({ context: { map, view } });
     }
 
     private onFail(e: any) {
@@ -101,8 +93,8 @@ export class Map extends React.Component<MapProperties, MapState> {
     public render() {
         return this.state.mapReady ? (
             <EsriMap onLoad={this.onLoad.bind(this)} onFail={this.onFail.bind(this)}>
-                {this.state.contextReady ? (
-                    <MapContext.Provider value={{ map: this.state.map, view: this.state.view }}>
+                {this.state.context ? (
+                    <MapContext.Provider value={this.state.context}>
                         {this.props.children}
                     </MapContext.Provider>
                 ) : null}
@@ -117,7 +109,6 @@ export class WebMap extends React.Component<WebMapProperties, MapState> {
 
         this.state = {
             mapReady: !mapNeedsInit(props),
-            contextReady: false,
         };
     }
 
@@ -131,7 +122,7 @@ export class WebMap extends React.Component<WebMapProperties, MapState> {
     private onLoad(map: __esri.Map, view: __esri.MapView | __esri.SceneView) {
         addContext(this.props.id, { map, view });
         if (this.props.onLoad) this.props.onLoad(map as __esri.WebMap, view);
-        this.setState({ contextReady: true, map, view });
+        this.setState({ context: { map, view } });
     }
 
     private onFail(e: any) {
@@ -141,8 +132,8 @@ export class WebMap extends React.Component<WebMapProperties, MapState> {
     public render() {
         return this.state.mapReady ? (
             <EsriWebMap id={this.props.portalId} onLoad={this.onLoad.bind(this)} onFail={this.onFail.bind(this)}>
-                {this.state.contextReady ? (
-                    <MapContext.Provider value={{ map: this.state.map, view: this.state.view }}>
+                {this.state.context ? (
+                    <MapContext.Provider value={this.state.context}>
                         {this.props.children}
                     </MapContext.Provider>
                 ) : null}
@@ -158,15 +149,16 @@ interface MapProviderProperties {
     mapId: string;
 }
 
-type MapProviderState = LoadsMapContext & {
+interface MapProviderState {
     domId: string;
+    context?: MapChild;
 };
 
 export class MapProvider extends React.Component<MapProviderProperties, MapProviderState> {
     public constructor(props: MapProviderProperties) {
         super(props);
 
-        this.state = { domId: uuidv4(), contextReady: false };
+        this.state = { domId: uuidv4()  };
     }
 
     public async componentDidMount() {
@@ -175,19 +167,19 @@ export class MapProvider extends React.Component<MapProviderProperties, MapProvi
             if (!context) throw new Error(`Couldn't find map ${this.props.mapId}`);
             await context.view.when();
             
-            this.setState({ contextReady: true, ...context });
+            this.setState({ context });
         } catch (e) {
             console.error(e);
         }
     }
 
     public render() {
-        if (!this.state.contextReady) return null;
+        if (!this.state.context) return null;
         
         // TODO: don't set height here. Leave styling up to consumer.
         return (
             <DOMContainer domId={this.state.domId} className={this.props.className} style={{ ...this.props.style, height: '100%' }}>
-                <MapContext.Provider value={this.state}>
+                <MapContext.Provider value={this.state.context}>
                     {this.props.children}
                 </MapContext.Provider>
             </DOMContainer>

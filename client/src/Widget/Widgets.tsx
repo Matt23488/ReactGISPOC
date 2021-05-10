@@ -7,6 +7,8 @@ import { loadWidget } from './WidgetInitialization';
 import { queueWidget, dequeueWidget } from './WidgetQueue';
 import { GenericWidgetConstructorKeys, MapComponentProperties, MapComponentState, WidgetProperties, WidgetState } from './WidgetTypes';
 
+import './Widgets.css';
+
 
 export class Widget<T extends GenericWidgetConstructorKeys> extends React.Component<WidgetProperties<T>, WidgetState<T>> {
     static contextType = MapContext;

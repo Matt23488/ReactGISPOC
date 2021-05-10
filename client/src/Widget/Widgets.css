@@ -1,0 +1,28 @@
+.map-ui-btn {
+    font-size: 14px;
+    background-color: #fff;
+    color: #6e6e6e;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 125ms ease-in-out;
+    border: 0;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+}
+
+.map-ui-btn:hover {
+    background-color: #f3f3f3;
+    color: #2e2e2e;
+}
+
+.map-ui-btn:active {
+    background-color: #e2f1fb;
+}

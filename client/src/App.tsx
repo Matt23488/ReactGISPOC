@@ -101,6 +101,9 @@ function App() {
                         Hello from MapComponent! React components DO work:
                         <ReactComponentTest layer="keptLayer" />
                     </MapComponent>
+                    <MapComponent position="manual" style={{ left: '59px', top: '173px' }}>
+                        <button className="map-ui-btn">&hearts;</button>
+                    </MapComponent>
 
 
                     <GraphicsLayer id="sketchLayer" title="Sketch Layer" />
