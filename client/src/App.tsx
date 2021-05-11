@@ -103,10 +103,16 @@ function App() {
                         <ReactComponentTest layer="grpLayer" />
                     </MapComponent>
                     <MapComponent position="manual" style={{ left: '59px', top: '173px' }}>
-                        <button className="map-ui-btn">&hearts;</button>
+                        <MapContext.Consumer>
+                            {(context) => {
+                                return (
+                                    <button className="map-ui-btn" onClick={() => console.log((context.view as __esri.MapView).extent)}>&hearts;</button>
+                                );
+                            }}
+                        </MapContext.Consumer>
                     </MapComponent>
                     <MapComponent position="top-right" expandable={true} expandProperties={{ expandTooltip: 'Print', expandIconClass: 'esri-icon-printer' }}>
-                        <Widget type="esri/widgets/Print" widgetProperties={{ printServiceUrl: settings.printServiceURL } as any} />
+                        <Widget type="esri/widgets/Print"  widgetProperties={{ printServiceUrl: settings.printServiceURL }} />
                     </MapComponent>
 
 

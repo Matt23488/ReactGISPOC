@@ -1,6 +1,6 @@
 import React from 'react';
 import { EsriTypeMap } from '../utilities/GIS';
-import { ConstructorInstance, Diff, FirstConstructorArgument, Optional, Remove } from '../utilities/Types';
+import { ConstructorInstance, Diff, Filter, FirstConstructorArgument, Optional, Remove } from '../utilities/Types';
 
 export type WidgetConstructorKeys = ({
     [T in keyof EsriTypeMap]: EsriTypeMap[T] extends { new(...params: never[]): __esri.Widget } ? T : never;
@@ -12,20 +12,25 @@ export type GenericWidgetConstructorKeys = Diff<WidgetConstructorKeys, 'esri/wid
 
 interface SpecializedWidgetPropertyTypeMap {
     'esri/widgets/Sketch': { layer: string };
-    'esri/widgets/Editor': { layers?: string[] };
+    'esri/widgets/Editor': { layers?: string[], layerInfos?: undefined };
     'esri/widgets/FeatureTable': { layer: string };
 }
 export type SpecializedWidgetProperties<T extends GenericWidgetConstructorKeys> = T extends keyof SpecializedWidgetPropertyTypeMap ? SpecializedWidgetPropertyTypeMap[T] : {};
 
-interface SpecializedWidgetPropertyRemoverTypeMap {
-    'esri/widgets/Editor': 'layerInfos';
-}
-type SpecializedWidgetPropertyRemover<T extends GenericWidgetConstructorKeys> = T extends keyof SpecializedWidgetPropertyRemoverTypeMap ? SpecializedWidgetPropertyRemoverTypeMap[T] : never;
+// interface SpecializedWidgetPropertyRemoverTypeMap {
+//     'esri/widgets/Editor': 'layerInfos';
+// }
+// type SpecializedWidgetPropertyRemover<T extends GenericWidgetConstructorKeys> = T extends keyof SpecializedWidgetPropertyRemoverTypeMap ? SpecializedWidgetPropertyRemoverTypeMap[T] : never;
 
-// TODO: widgetProperties is not working anymore. It seems to be doing a union on all possible widget properties instead of just those associated with T.
+// TODO: I can't find a way to make TypeScript do what I want other than to not restrict what they can pass in on widgetProperties. I'll just
+// have to document that some properties will be ignored.
+// On further research, it seems that because I'm abusing T outside of it's inferred usage (type: T), TypeScript
+// cannot infer any information about other types using T: https://github.com/microsoft/TypeScript/issues/30650
+// Basically if I build a new type for widgetProperties, T will have to be explicitly declared when referencing <Widget />
+// and also `type` will have to be set to the same value, which is ugly.
 export type WidgetProperties<T extends GenericWidgetConstructorKeys> = SpecializedWidgetProperties<T> & {
     type: T;
-    widgetProperties?: Optional<Remove<WidgetPropertiesTypeMap[T], keyof WidgetProperties<T> | SpecializedWidgetPropertyRemover<T>>>;
+    widgetProperties?: WidgetPropertiesTypeMap[T];
     init?: (widget: ConstructorInstance<EsriTypeMap[T]>) => void;
     id?: string;
 }
